@@ -7,7 +7,7 @@ Principe directeur : **tout flux passe par un point observable**. Chaque action
 émet un **événement normalisé** (le *contrat d'observabilité*) dans la table
 `events` — l'unique interface que l'agent lira plus tard.
 
-> Version 0.2.0 — phase 1 (plateforme complète) intégrée.
+> Version 0.3.0 — interface web intégrée (servie par la passerelle).
 
 ## Architecture
 
@@ -33,6 +33,19 @@ docker compose up --build
 - Santé : http://localhost:8080/health
 
 Tables créées et données de départ injectées automatiquement.
+
+## Interface web
+
+Une interface est servie directement par la passerelle, sur la **même URL** que l'API :
+
+- Ouvre simplement **http://localhost:8080/** après `docker compose up --build`.
+- Connecte-toi avec un compte de démonstration (voir plus bas).
+- Onglets : **Relevés** (saisir, corriger, valider, importer/exporter), **Stations**,
+  et — pour l'administrateur — **Journal** (le flux d'événements en direct) et **Comptes**.
+- L'onglet **Journal** est la pièce maîtresse : chaque action s'y inscrit en temps réel,
+  les tentatives refusées apparaissent en rouge. C'est le contrat d'observabilité, visible.
+
+Le frontend est un fichier statique unique (`frontend/index.html`) ; aucune installation.
 
 ## Comptes de départ
 

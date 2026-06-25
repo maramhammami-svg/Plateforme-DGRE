@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DGRE · Pluviométrie</title>
+<style>
+  :root{
+    --ink:#171A26; --navy:#222742; --indigo:#534AB7; --indigo-deep:#3A3490;
+    --rain:#2F6FB0; --bg:#EEF1F7; --surface:#FFFFFF; --line:#DDE2EC;
+    --muted:#5B6172; --ok:#0F8A6B; --warn:#9A5B08; --bad:#B3331B;
+    --font: ui-sans-serif, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+    --mono: ui-monospace, "Cascadia Code", "Consolas", monospace;
+    --radius:12px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:var(--font); background:var(--bg); color:var(--ink); line-height:1.5}
+  button{font-family:inherit}
+  a{color:var(--indigo)}
+
+  /* ---------- top bar ---------- */
+  .topbar{display:flex; align-items:center; gap:16px; padding:0 22px; height:60px;
+    background:var(--navy); color:#fff; position:sticky; top:0; z-index:20}
+  .brand{display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.2px}
+  .brand small{font-weight:500; opacity:.7; letter-spacing:.4px}
+  .drop{width:22px; height:22px; flex:0 0 auto}
+  .health{display:flex; align-items:center; gap:6px; font-size:12px; opacity:.85}
+  .dot{width:8px; height:8px; border-radius:50%; background:#5b6172}
+  .dot.on{background:#34d399} .dot.off{background:#f87171}
+  .spacer{flex:1}
+  .who{display:flex; align-items:center; gap:10px; font-size:13px}
+  .chip{background:rgba(255,255,255,.12); padding:5px 10px; border-radius:999px}
+  .chip b{font-weight:700}
+  .role{font-size:11px; text-transform:uppercase; letter-spacing:.6px; opacity:.8}
+  .btn{border:1px solid var(--line); background:var(--surface); color:var(--ink);
+    padding:8px 14px; border-radius:9px; cursor:pointer; font-size:14px; font-weight:600}
+  .btn:hover{border-color:#c3c9d6}
+  .btn.primary{background:var(--indigo); border-color:var(--indigo); color:#fff}
+  .btn.primary:hover{background:var(--indigo-deep)}
+  .btn.ghost{background:transparent; color:#fff; border-color:rgba(255,255,255,.25)}
+  .btn.ghost:hover{background:rgba(255,255,255,.1)}
+  .btn.sm{padding:5px 9px; font-size:12.5px; border-radius:7px}
+  .btn:disabled{opacity:.45; cursor:not-allowed}
+
+  /* ---------- layout ---------- */
+  .wrap{max-width:1080px; margin:0 auto; padding:22px}
+  .tabs{display:flex; gap:4px; border-bottom:1px solid var(--line); margin-bottom:22px}
+  .tab{padding:11px 16px; cursor:pointer; font-weight:600; color:var(--muted);
+    border-bottom:2px solid transparent; margin-bottom:-1px; font-size:14.5px}
+  .tab:hover{color:var(--ink)}
+  .tab.active{color:var(--indigo); border-bottom-color:var(--indigo)}
+  .hidden{display:none !important}
+
+  .card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+    padding:20px; margin-bottom:18px}
+  .card h2{margin:0 0 4px; font-size:16px}
+  .card .sub{color:var(--muted); font-size:13px; margin:0 0 16px}
+
+  .grid{display:grid; gap:12px}
+  .row{display:flex; gap:12px; flex-wrap:wrap; align-items:end}
+  label.field{display:flex; flex-direction:column; gap:5px; font-size:12.5px; color:var(--muted); font-weight:600}
+  input,select{font-family:inherit; font-size:14px; padding:9px 11px; border:1px solid var(--line);
+    border-radius:9px; background:#fff; color:var(--ink); min-width:120px}
+  input:focus,select:focus{outline:2px solid #c7c2ef; border-color:var(--indigo)}
+
+  /* ---------- table ---------- */
+  table{width:100%; border-collapse:collapse; font-size:13.5px}
+  th,td{text-align:left; padding:9px 12px; border-bottom:1px solid var(--line)}
+  th{font-size:11.5px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); font-weight:700}
+  tbody tr:hover{background:#f8f9fc}
+  td.num{font-family:var(--mono)}
+  .empty{color:var(--muted); font-style:italic; padding:18px 12px}
+
+  .badge{display:inline-block; font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px;
+    text-transform:uppercase; letter-spacing:.4px}
+  .b-ok{background:#e3f3ee; color:var(--ok)}
+  .b-warn{background:#fbf0dd; color:var(--warn)}
+  .b-bad{background:#fae6e1; color:var(--bad)}
+  .b-info{background:#e7ecfb; color:var(--indigo-deep)}
+
+  .actions{display:flex; gap:6px; flex-wrap:wrap}
+
+  /* ---------- login ---------- */
+  .login-stage{min-height:calc(100vh - 60px); display:grid; place-items:center; padding:24px}
+  .login{width:380px; max-width:100%; background:var(--surface); border:1px solid var(--line);
+    border-radius:16px; padding:28px}
+  .login h1{margin:0 0 4px; font-size:20px}
+  .login p{margin:0 0 20px; color:var(--muted); font-size:13.5px}
+  .login .field{margin-bottom:14px}
+  .login input{width:100%}
+  .login .btn{width:100%; padding:11px}
+  .hint{margin-top:16px; font-size:12px; color:var(--muted); line-height:1.6}
+  .hint code{background:#eef0f6; padding:1px 5px; border-radius:5px; font-family:var(--mono)}
+
+  /* ---------- journal (signature) ---------- */
+  .journal{font-family:var(--mono); font-size:12.5px}
+  .journal th{font-family:var(--font)}
+  .journal td{padding:7px 12px; border-bottom:1px solid #eef0f6}
+  .journal .ts{color:var(--muted); white-space:nowrap}
+  .journal .act{font-weight:700}
+  .flash{animation:flash 1.1s ease-out}
+  @keyframes flash{from{background:#fff7d6} to{background:transparent}}
+  @media (prefers-reduced-motion: reduce){ .flash{animation:none} }
+
+  /* ---------- toast + modal ---------- */
+  .toast{position:fixed; right:18px; bottom:18px; z-index:50; display:flex; flex-direction:column; gap:8px}
+  .toast > div{background:var(--ink); color:#fff; padding:11px 14px; border-radius:10px; font-size:13.5px;
+    max-width:340px; box-shadow:0 8px 24px rgba(0,0,0,.18)}
+  .toast > div.err{background:#7a1f12}
+  .toast > div.ok{background:#0c5c47}
+  .modal-bg{position:fixed; inset:0; background:rgba(20,22,34,.5); display:grid; place-items:center; z-index:40}
+  .modal{background:#fff; border-radius:14px; padding:22px; width:520px; max-width:92vw; max-height:80vh; overflow:auto}
+  .modal h3{margin:0 0 12px}
+  .modal .btn{margin-top:14px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <svg class="drop" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 3C12 3 5 11 5 15.5C5 19.1 8.1 22 12 22C15.9 22 19 19.1 19 15.5C19 11 12 3 12 3Z"
+            fill="#6EA8E0" stroke="#cfe0f3" stroke-width="1.1"/>
+      <path d="M9.5 16.2C9.5 17.7 10.6 18.9 12 18.9" stroke="#fff" stroke-width="1.3" stroke-linecap="round" opacity=".8"/>
+    </svg>
+    <span>DGRE <small>· Pluviométrie</small></span>
+  </div>
+  <div class="health"><span id="hdot" class="dot"></span><span id="htext">vérification…</span></div>
+  <div class="spacer"></div>
+  <div id="whoBox" class="who hidden">
+    <span class="chip"><b id="whoName"></b> · <span id="whoRegion"></span> · <span class="role" id="whoRole"></span></span>
+    <button class="btn ghost sm" id="logoutBtn">Se déconnecter</button>
+  </div>
+</div>
+
+<!-- ===================== LOGIN ===================== -->
+<section id="loginView" class="login-stage">
+  <div class="login">
+    <h1>Connexion</h1>
+    <p>Accédez à la plateforme de relevés pluviométriques.</p>
+    <label class="field">Identifiant
+      <input id="liUser" autocomplete="username" placeholder="ex. agent_nord">
+    </label>
+    <label class="field">Mot de passe
+      <input id="liPass" type="password" autocomplete="current-password" placeholder="••••••••">
+    </label>
+    <button class="btn primary" id="loginBtn">Se connecter</button>
+    <div class="hint">
+      Comptes de démonstration :<br>
+      <code>admin / admin123</code> · <code>resp_nord / resp123</code> · <code>agent_nord / agent123</code>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== APP ===================== -->
+<main id="appView" class="wrap hidden">
+  <div class="tabs">
+    <div class="tab active" data-tab="readings">Relevés</div>
+    <div class="tab" data-tab="stations">Stations</div>
+    <div class="tab" data-tab="journal" data-admin>Journal</div>
+    <div class="tab" data-tab="accounts" data-admin>Comptes</div>
+  </div>
+
+  <!-- ---- RELEVÉS ---- -->
+  <section id="tab-readings">
+    <div class="card">
+      <h2>Saisir un relevé</h2>
+      <p class="sub">La valeur est contrôlée à la saisie ; un relevé corrigé repasse en attente de validation.</p>
+      <div class="row">
+        <label class="field">Station
+          <select id="rStation"></select>
+        </label>
+        <label class="field">Date
+          <input id="rDate" type="date">
+        </label>
+        <label class="field">Pluie (mm)
+          <input id="rValue" type="number" step="0.1" min="0" placeholder="0.0">
+        </label>
+        <button class="btn primary" id="rAddBtn">Enregistrer le relevé</button>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <label class="field">Import CSV
+          <input id="rFile" type="file" accept=".csv">
+        </label>
+        <button class="btn" id="rImportBtn">Importer</button>
+        <button class="btn" id="rExportBtn">Exporter en CSV</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Relevés de votre périmètre</h2>
+      <p class="sub">Limités à votre région (toutes régions pour l'administrateur).</p>
+      <table>
+        <thead><tr><th>#</th><th>Station</th><th>Date</th><th>mm</th><th>Statut</th><th>Qualité</th><th></th></tr></thead>
+        <tbody id="readingsBody"><tr><td colspan="7" class="empty">Chargement…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ---- STATIONS ---- -->
+  <section id="tab-stations" class="hidden">
+    <div class="card" id="stationCreateCard">
+      <h2>Nouvelle station</h2>
+      <p class="sub">Réservé au responsable et à l'administrateur, dans votre région.</p>
+      <div class="row">
+        <label class="field">Code <input id="sCode" placeholder="ST-010"></label>
+        <label class="field">Nom <input id="sName" placeholder="Station …"></label>
+        <label class="field">Région <input id="sRegion" placeholder="Nord"></label>
+        <label class="field">Gouvernorat <input id="sGov" placeholder="Bizerte"></label>
+        <button class="btn primary" id="sAddBtn">Créer la station</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Stations</h2>
+      <p class="sub">Vue cloisonnée par région.</p>
+      <table>
+        <thead><tr><th>Code</th><th>Nom</th><th>Région</th><th>Gouvernorat</th><th>Statut</th><th></th></tr></thead>
+        <tbody id="stationsBody"><tr><td colspan="6" class="empty">Chargement…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ---- JOURNAL (signature) ---- -->
+  <section id="tab-journal" class="hidden">
+    <div class="card">
+      <h2>Journal d'activité</h2>
+      <p class="sub">Chaque action laisse ici un événement normalisé — la matière que l'agent surveillera. Les tentatives refusées apparaissent en rouge.</p>
+      <div class="row" style="margin-bottom:8px">
+        <button class="btn" id="jRefresh">Rafraîchir</button>
+        <label class="field" style="flex-direction:row; align-items:center; gap:8px; color:var(--ink)">
+          <input type="checkbox" id="jAuto" style="min-width:auto"> Suivi en direct (3 s)
+        </label>
+      </div>
+      <table class="journal">
+        <thead><tr><th>Heure</th><th>Acteur</th><th>Rôle</th><th>Action</th><th>Ressource</th><th>Région</th><th>Vol.</th><th>IP</th><th>Résultat</th></tr></thead>
+        <tbody id="journalBody"><tr><td colspan="9" class="empty">Chargement…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ---- COMPTES ---- -->
+  <section id="tab-accounts" class="hidden">
+    <div class="card">
+      <h2>Nouveau compte</h2>
+      <p class="sub">Réservé à l'administrateur. Le changement de rôle est une action sensible, journalisée.</p>
+      <div class="row">
+        <label class="field">Identifiant <input id="uUser" placeholder="agent_centre"></label>
+        <label class="field">Mot de passe <input id="uPass" type="password" placeholder="••••••"></label>
+        <label class="field">Nom complet <input id="uFull" placeholder="Agent Centre"></label>
+        <label class="field">Rôle
+          <select id="uRole">
+            <option value="agent">agent</option>
+            <option value="responsable">responsable</option>
+            <option value="administrateur">administrateur</option>
+          </select>
+        </label>
+        <label class="field">Région <input id="uRegion" placeholder="Centre"></label>
+        <button class="btn primary" id="uAddBtn">Créer le compte</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Comptes</h2>
+      <table>
+        <thead><tr><th>#</th><th>Identifiant</th><th>Nom</th><th>Rôle</th><th>Région</th><th>Actif</th></tr></thead>
+        <tbody id="usersBody"><tr><td colspan="6" class="empty">Chargement…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+const API = "";                         // même origine (servie par la passerelle)
+const TOKEN_KEY = "dgre_token";
+let token = localStorage.getItem(TOKEN_KEY) || null;
+let me = null;
+let stationCache = [];
+let autoTimer = null;
+
+const $ = s => document.querySelector(s);
+const el = (t, c) => { const e=document.createElement(t); if(c) e.className=c; return e; };
+const esc = s => (s==null?"":String(s)).replace(/[&<>]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[m]));
+
+function toast(msg, kind){
+  const d = el("div", kind||""); d.textContent = msg; $("#toast").appendChild(d);
+  setTimeout(()=>{ d.style.opacity="0"; d.style.transition="opacity .4s"; setTimeout(()=>d.remove(),400); }, 3200);
+}
+
+async function api(path, opts={}){
+  const headers = opts.headers || {};
+  if(token) headers["Authorization"] = "Bearer " + token;
+  const res = await fetch(API + path, {...opts, headers});
+  if(res.status === 401){ doLogout(); throw {status:401, detail:"Session expirée"}; }
+  if(opts.raw) {
+    if(!res.ok){ throw await asError(res); }
+    return res;
+  }
+  let data = null;
+  const text = await res.text();
+  try{ data = text ? JSON.parse(text) : null; }catch{ data = text; }
+  if(!res.ok){ throw {status:res.status, detail:(data && data.detail) || res.statusText}; }
+  return data;
+}
+async function asError(res){ let d=null; try{ d=await res.json(); }catch{} return {status:res.status, detail:(d&&d.detail)||res.statusText}; }
+
+/* ---------------- auth ---------------- */
+async function doLogin(){
+  const u = $("#liUser").value.trim(), p = $("#liPass").value;
+  if(!u || !p){ toast("Saisissez vos identifiants.", "err"); return; }
+  try{
+    const body = new URLSearchParams({username:u, password:p});
+    const data = await api("/auth/login", {method:"POST", body});
+    token = data.access_token; localStorage.setItem(TOKEN_KEY, token);
+    await boot();
+  }catch(e){ toast(e.detail || "Connexion impossible.", "err"); }
+}
+function doLogout(){
+  token = null; me = null; localStorage.removeItem(TOKEN_KEY);
+  if(autoTimer){ clearInterval(autoTimer); autoTimer=null; }
+  $("#appView").classList.add("hidden"); $("#whoBox").classList.add("hidden");
+  $("#loginView").classList.remove("hidden");
+}
+
+/* ---------------- boot ---------------- */
+async function boot(){
+  me = await api("/auth/me");
+  $("#whoName").textContent = me.username;
+  $("#whoRegion").textContent = me.region;
+  $("#whoRole").textContent = me.role;
+  $("#whoBox").classList.remove("hidden");
+  $("#loginView").classList.add("hidden");
+  $("#appView").classList.remove("hidden");
+
+  const isAdmin = me.role === "administrateur";
+  const isAgent = me.role === "agent";
+  document.querySelectorAll("[data-admin]").forEach(n => n.classList.toggle("hidden", !isAdmin));
+  $("#stationCreateCard").classList.toggle("hidden", isAgent); // agents ne créent pas de station
+
+  $("#rDate").value = new Date().toISOString().slice(0,10);
+  showTab("readings");
+  await Promise.all([loadStations(), loadReadings()]);
+}
+
+/* ---------------- tabs ---------------- */
+function showTab(name){
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.tab===name));
+  ["readings","stations","journal","accounts"].forEach(n =>
+    $("#tab-"+n).classList.toggle("hidden", n!==name));
+  if(name==="journal") loadJournal();
+  if(name==="accounts") loadUsers();
+}
+
+/* ---------------- stations ---------------- */
+async function loadStations(){
+  try{
+    stationCache = await api("/stations");
+    // select
+    const sel = $("#rStation"); sel.innerHTML = "";
+    if(stationCache.length===0){ sel.innerHTML = '<option value="">aucune station</option>'; }
+    stationCache.forEach(s => { const o=el("option"); o.value=s.id; o.textContent=`${s.code} — ${s.name}`; sel.appendChild(o); });
+    // table
+    const tb = $("#stationsBody"); tb.innerHTML = "";
+    if(stationCache.length===0){ tb.innerHTML = '<tr><td colspan="6" class="empty">Aucune station dans votre périmètre.</td></tr>'; return; }
+    stationCache.forEach(s => {
+      const tr = el("tr");
+      const st = s.status==="active" ? '<span class="badge b-ok">active</span>' : '<span class="badge b-warn">inactive</span>';
+      let act = "";
+      if(me.role!=="agent"){
+        const next = s.status==="active" ? "inactive" : "active";
+        act = `<button class="btn sm" data-station-toggle="${s.id}" data-next="${next}">${s.status==="active"?"Désactiver":"Activer"}</button>`;
+      }
+      tr.innerHTML = `<td class="num">${esc(s.code)}</td><td>${esc(s.name)}</td><td>${esc(s.region)}</td>
+        <td>${esc(s.governorate||"")}</td><td>${st}</td><td class="actions">${act}</td>`;
+      tb.appendChild(tr);
+    });
+  }catch(e){ toast(e.detail, "err"); }
+}
+async function createStation(){
+  const payload = {code:$("#sCode").value.trim(), name:$("#sName").value.trim(),
+    region:$("#sRegion").value.trim(), governorate:$("#sGov").value.trim()||null};
+  if(!payload.code||!payload.name||!payload.region){ toast("Code, nom et région sont requis.", "err"); return; }
+  try{
+    await api("/stations", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)});
+    toast("Station créée.", "ok"); ["#sCode","#sName","#sGov"].forEach(i=>$(i).value="");
+    await loadStations();
+  }catch(e){ toast(e.detail, "err"); }
+}
+async function toggleStation(id, next){
+  try{ await api("/stations/"+id, {method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify({status:next})});
+    toast("Station mise à jour.", "ok"); await loadStations();
+  }catch(e){ toast(e.detail, "err"); }
+}
+
+/* ---------------- readings ---------------- */
+function statusBadge(s){
+  if(s==="validated") return '<span class="badge b-ok">validé</span>';
+  if(s==="rejected") return '<span class="badge b-bad">rejeté</span>';
+  return '<span class="badge b-warn">en attente</span>';
+}
+async function loadReadings(){
+  try{
+    const rows = await api("/readings");
+    const byId = Object.fromEntries(stationCache.map(s=>[s.id, s.code]));
+    const tb = $("#readingsBody"); tb.innerHTML = "";
+    if(rows.length===0){ tb.innerHTML = '<tr><td colspan="7" class="empty">Aucun relevé pour le moment.</td></tr>'; return; }
+    rows.forEach(r => {
+      const tr = el("tr");
+      const q = r.quality_flag ? `<span class="badge b-warn">${esc(r.quality_flag)}</span>` : "";
+      const canValidate = me.role!=="agent";
+      const canDelete = me.role!=="agent";
+      let act = `<button class="btn sm" data-correct="${r.id}" data-val="${r.value_mm}">Corriger</button>
+                 <button class="btn sm" data-versions="${r.id}">Historique</button>`;
+      if(canValidate) act += ` <button class="btn sm" data-validate="${r.id}" data-dec="validate">Valider</button>
+                               <button class="btn sm" data-validate="${r.id}" data-dec="reject">Rejeter</button>`;
+      if(canDelete) act += ` <button class="btn sm" data-delete="${r.id}">Supprimer</button>`;
+      tr.innerHTML = `<td class="num">${r.id}</td><td class="num">${esc(byId[r.station_id]||r.station_id)}</td>
+        <td class="num">${esc(r.date)}</td><td class="num">${r.value_mm}</td><td>${statusBadge(r.status)}</td>
+        <td>${q}</td><td class="actions">${act}</td>`;
+      tb.appendChild(tr);
+    });
+  }catch(e){ toast(e.detail, "err"); }
+}
+async function addReading(){
+  const sid = $("#rStation").value;
+  const date = $("#rDate").value;
+  const val = parseFloat($("#rValue").value);
+  if(!sid){ toast("Choisissez une station.", "err"); return; }
+  if(!date || isNaN(val)){ toast("Date et valeur sont requises.", "err"); return; }
+  try{
+    await api("/readings", {method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({station_id:Number(sid), date, value_mm:val})});
+    toast("Relevé enregistré.", "ok"); $("#rValue").value="";
+    await loadReadings();
+  }catch(e){ toast(e.detail, "err"); }   // ex. valeur aberrante → message + événement 'failure'
+}
+async function correctReading(id, current){
+  const v = prompt("Nouvelle valeur (mm) :", current); if(v===null) return;
+  const val = parseFloat(v); if(isNaN(val)){ toast("Valeur invalide.", "err"); return; }
+  const reason = prompt("Raison de la correction (facultatif) :", "") || null;
+  try{
+    await api("/readings/"+id, {method:"PATCH", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({value_mm:val, reason})});
+    toast("Relevé corrigé (en attente de validation).", "ok"); await loadReadings();
+  }catch(e){ toast(e.detail, "err"); }
+}
+async function validateReading(id, decision){
+  try{
+    await api("/readings/"+id+"/validate", {method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({decision})});
+    toast(decision==="validate"?"Relevé validé.":"Relevé rejeté.", "ok"); await loadReadings();
+  }catch(e){ toast(e.detail, "err"); }
+}
+async function deleteReading(id){
+  if(!confirm("Supprimer ce relevé ?")) return;
+  try{ await api("/readings/"+id, {method:"DELETE", raw:true}); toast("Relevé supprimé.", "ok"); await loadReadings(); }
+  catch(e){ toast(e.detail, "err"); }
+}
+async function showVersions(id){
+  try{
+    const vers = await api("/readings/"+id+"/versions");
+    let html = `<h3>Historique du relevé #${id}</h3>`;
+    if(vers.length===0){ html += '<p class="empty">Aucune modification enregistrée.</p>'; }
+    else{
+      html += '<table><thead><tr><th>v</th><th>Avant</th><th>Après</th><th>Statut</th><th>Raison</th></tr></thead><tbody>';
+      vers.forEach(v => html += `<tr><td class="num">${v.version_no}</td><td class="num">${v.old_value_mm}</td>
+        <td class="num">${v.new_value_mm}</td><td>${esc(v.old_status)}→${esc(v.new_status)}</td><td>${esc(v.reason||"")}</td></tr>`);
+      html += '</tbody></table>';
+    }
+    openModal(html);
+  }catch(e){ toast(e.detail, "err"); }
+}
+async function importCSV(){
+  const f = $("#rFile").files[0]; if(!f){ toast("Choisissez un fichier CSV.", "err"); return; }
+  const fd = new FormData(); fd.append("file", f);
+  try{
+    const res = await api("/readings/import", {method:"POST", body:fd});
+    toast(`Import : ${res.inserted} insérés, ${res.rejected} rejetés.`, "ok");
+    $("#rFile").value=""; await loadReadings();
+  }catch(e){ toast(e.detail, "err"); }
+}
+async function exportCSV(){
+  try{
+    const res = await api("/readings/export", {raw:true});
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = el("a"); a.href=url; a.download="releves.csv"; document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url); toast("Export téléchargé.", "ok");
+  }catch(e){ toast(e.detail, "err"); }
+}
+
+/* ---------------- journal ---------------- */
+let lastTopEventId = 0;
+function resultBadge(r){
+  if(r==="success") return '<span class="badge b-ok">succès</span>';
+  if(r==="denied") return '<span class="badge b-bad">refusé</span>';
+  if(r==="failure") return '<span class="badge b-bad">échec</span>';
+  return `<span class="badge b-info">${esc(r)}</span>`;
+}
+async function loadJournal(){
+  try{
+    const rows = await api("/events?limit=120");
+    const tb = $("#journalBody"); tb.innerHTML = "";
+    if(rows.length===0){ tb.innerHTML = '<tr><td colspan="9" class="empty">Journal vide.</td></tr>'; return; }
+    const newTop = rows[0].id;
+    rows.forEach(ev => {
+      const tr = el("tr"); if(ev.id > lastTopEventId && lastTopEventId>0) tr.classList.add("flash");
+      tr.innerHTML = `<td class="ts">${ev.id}</td><td>${esc(ev.actor_username||"—")}</td>
+        <td>${esc(ev.role||"")}</td><td class="act">${esc(ev.action)}</td>
+        <td>${esc(ev.resource_type||"")}${ev.resource_id?(" #"+esc(ev.resource_id)):""}</td>
+        <td>${esc(ev.region||"")}</td><td>${ev.volume??""}</td><td>${esc(ev.channel_ip||"")}</td>
+        <td>${resultBadge(ev.result)}</td>`;
+      tb.appendChild(tr);
+    });
+    lastTopEventId = newTop;
+  }catch(e){ toast(e.detail, "err"); }
+}
+
+/* ---------------- accounts ---------------- */
+async function loadUsers(){
+  try{
+    const rows = await api("/admin/users");
+    const tb = $("#usersBody"); tb.innerHTML = "";
+    rows.forEach(u => { const tr=el("tr");
+      tr.innerHTML = `<td class="num">${u.id}</td><td>${esc(u.username)}</td><td>${esc(u.full_name||"")}</td>
+        <td>${esc(u.role)}</td><td>${esc(u.region)}</td><td>${u.is_active?'<span class="badge b-ok">oui</span>':'<span class="badge b-bad">non</span>'}</td>`;
+      tb.appendChild(tr); });
+  }catch(e){ toast(e.detail, "err"); }
+}
+async function createUser(){
+  const payload = {username:$("#uUser").value.trim(), password:$("#uPass").value,
+    full_name:$("#uFull").value.trim()||null, role:$("#uRole").value, region:$("#uRegion").value.trim()};
+  if(!payload.username||!payload.password||!payload.region){ toast("Identifiant, mot de passe et région requis.", "err"); return; }
+  try{
+    await api("/admin/users", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)});
+    toast("Compte créé.", "ok"); ["#uUser","#uPass","#uFull","#uRegion"].forEach(i=>$(i).value="");
+    await loadUsers();
+  }catch(e){ toast(e.detail, "err"); }
+}
+
+/* ---------------- modal ---------------- */
+function openModal(html){
+  const bg = el("div","modal-bg"); const m = el("div","modal");
+  m.innerHTML = html + '<button class="btn primary">Fermer</button>';
+  m.querySelector(".btn").onclick = ()=>bg.remove();
+  bg.onclick = e => { if(e.target===bg) bg.remove(); };
+  bg.appendChild(m); document.body.appendChild(bg);
+}
+
+/* ---------------- health ---------------- */
+async function checkHealth(){
+  try{ await fetch(API+"/health"); $("#hdot").className="dot on"; $("#htext").textContent="API connectée"; }
+  catch{ $("#hdot").className="dot off"; $("#htext").textContent="API injoignable"; }
+}
+
+/* ---------------- events wiring ---------------- */
+$("#loginBtn").onclick = doLogin;
+$("#liPass").addEventListener("keydown", e => { if(e.key==="Enter") doLogin(); });
+$("#logoutBtn").onclick = doLogout;
+$("#rAddBtn").onclick = addReading;
+$("#rImportBtn").onclick = importCSV;
+$("#rExportBtn").onclick = exportCSV;
+$("#sAddBtn").onclick = createStation;
+$("#uAddBtn").onclick = createUser;
+$("#jRefresh").onclick = loadJournal;
+$("#jAuto").onchange = e => {
+  if(e.target.checked){ autoTimer=setInterval(loadJournal, 3000); } else if(autoTimer){ clearInterval(autoTimer); autoTimer=null; }
+};
+document.querySelectorAll(".tab").forEach(t => t.onclick = ()=>showTab(t.dataset.tab));
+
+// délégation pour les boutons de tableaux
+document.addEventListener("click", e => {
+  const b = e.target.closest("button"); if(!b) return;
+  if(b.dataset.correct) correctReading(b.dataset.correct, b.dataset.val);
+  else if(b.dataset.versions) showVersions(b.dataset.versions);
+  else if(b.dataset.validate) validateReading(b.dataset.validate, b.dataset.dec);
+  else if(b.dataset.delete) deleteReading(b.dataset.delete);
+  else if(b.dataset.stationToggle) toggleStation(b.dataset.stationToggle, b.dataset.next);
+});
+
+/* ---------------- start ---------------- */
+checkHealth();
+if(token){ boot().catch(()=>doLogout()); }
+</script>
+</body>
+</html>
