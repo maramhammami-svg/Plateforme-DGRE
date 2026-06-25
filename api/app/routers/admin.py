@@ -1,0 +1,65 @@
+from fastapi import APIRouter, Depends, HTTPException, status, Request
+from sqlalchemy.orm import Session
+from ..database import get_db
+from ..models import User
+from ..security import hash_password
+from ..events import log_event
+from ..deps import get_current_user
+from .. import constants as C
+from ..schemas import UserIn, UserUpdate, UserOut
+
+router = APIRouter(prefix="/admin", tags=["admin"])
+
+
+def _require_admin(db, request, user, action):
+    if user.role != C.ROLE_ADMIN:
+        log_event(db, request=request, user=user, action=action,
+                  result=C.RESULT_DENIED, resource_type="account",
+                  detail={"reason": "reserve a l'administrateur"})
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Reserve a l'administrateur")
+
+
+@router.get("/users", response_model=list[UserOut])
+def list_users(request: Request, db: Session = Depends(get_db),
+               user: User = Depends(get_current_user)):
+    _require_admin(db, request, user, "list_users")
+    return db.query(User).order_by(User.id).all()
+
+
+@router.post("/users", response_model=UserOut, status_code=201)
+def create_user(payload: UserIn, request: Request, db: Session = Depends(get_db),
+                user: User = Depends(get_current_user)):
+    _require_admin(db, request, user, "create_account")
+    if payload.role not in C.ROLES:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Role inconnu")
+    if db.query(User).filter(User.username == payload.username).first():
+        raise HTTPException(status.HTTP_409_CONFLICT, "Identifiant deja pris")
+    u = User(username=payload.username, full_name=payload.full_name,
+             hashed_password=hash_password(payload.password),
+             role=payload.role, region=payload.region)
+    db.add(u); db.commit(); db.refresh(u)
+    log_event(db, request=request, user=user, action="create_account",
+              resource_type="account", resource_id=u.id,
+              detail={"username": u.username, "role": u.role, "region": u.region})
+    return u
+
+
+@router.patch("/users/{user_id}", response_model=UserOut)
+def update_user(user_id: int, payload: UserUpdate, request: Request,
+                db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    _require_admin(db, request, user, "update_account")
+    target = db.query(User).filter(User.id == user_id).first()
+    if not target:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Compte introuvable")
+    data = payload.model_dump(exclude_unset=True)
+    if "role" in data and data["role"] not in C.ROLES:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Role inconnu")
+    old = {k: getattr(target, k) for k in data}
+    for k, v in data.items():
+        setattr(target, k, v)
+    db.commit(); db.refresh(target)
+    # Le changement de role / region est sensible : il est journalise en detail.
+    log_event(db, request=request, user=user, action="update_account",
+              resource_type="account", resource_id=target.id,
+              detail={"from": old, "to": data})
+    return target

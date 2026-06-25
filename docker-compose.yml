@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: dgre
+      POSTGRES_PASSWORD: dgre_pass
+      POSTGRES_DB: dgre_poc
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dgre -d dgre_poc"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: ./api
+    environment:
+      DATABASE_URL: postgresql+psycopg2://dgre:dgre_pass@db:5432/dgre_poc
+      JWT_SECRET: change-me-in-prod
+      JWT_EXPIRE_MINUTES: "120"
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - "8000"
+
+  gateway:
+    image: nginx:1.27-alpine
+    volumes:
+      - ./gateway/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+
+volumes:
+  db_data:
