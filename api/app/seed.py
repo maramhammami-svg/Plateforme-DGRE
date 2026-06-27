@@ -5,30 +5,73 @@ from .security import hash_password
 from . import constants as C
 
 USERS = [
-    ("admin",      "admin123", "Administrateur",   C.ROLE_ADMIN,       "National"),
-    ("resp_nord",  "resp123",  "Responsable Nord", C.ROLE_RESPONSABLE, "Nord"),
-    ("agent_nord", "agent123", "Agent Nord",       C.ROLE_AGENT,       "Nord"),
-    ("agent_sud",  "agent123", "Agent Sud",        C.ROLE_AGENT,       "Sud"),
+    ("admin",        "admin123",  "Administrateur",      C.ROLE_ADMIN),
+    ("directeur1",   "dir123",    "Directeur National",  C.ROLE_DIRECTEUR),
+    ("analyste1",    "ana123",    "Analyste Hydrologie", C.ROLE_ANALYSTE),
+    ("responsable1", "resp123",   "Responsable Terrain", C.ROLE_RESPONSABLE),
+    ("observateur1", "obs123",    "Observateur",         C.ROLE_OBSERVATEUR),
+    ("agent1",       "agent123",  "Agent Saisie",        C.ROLE_AGENT),
 ]
 
 STATIONS = [
-    ("ST-001", "Station Bizerte",  "Nord", "Bizerte"),
-    ("ST-002", "Station Beja",     "Nord", "Beja"),
-    ("ST-003", "Station Gabes",    "Sud",  "Gabes"),
+    {
+        "name": "Bizerte Pluvio Auto",
+        "type": C.STATION_TYPE_AUTO,
+        "parameter": C.PARAM_PLUVIO,
+        "unit": C.UNIT_MM,
+        "sampling_interval_min": 15,
+        "latitude": 37.27,
+        "longitude": 9.87,
+        "altitude_m": 12.0,
+        "governorate": "Bizerte",
+    },
+    {
+        "name": "Beja Pluvio Auto",
+        "type": C.STATION_TYPE_AUTO,
+        "parameter": C.PARAM_PLUVIO,
+        "unit": C.UNIT_MM,
+        "sampling_interval_min": 15,
+        "latitude": 36.73,
+        "longitude": 9.18,
+        "altitude_m": 150.0,
+        "governorate": "Beja",
+    },
+    {
+        "name": "Gabes Limni Auto",
+        "type": C.STATION_TYPE_AUTO,
+        "parameter": C.PARAM_LIMNI,
+        "unit": C.UNIT_CM,
+        "sampling_interval_min": 60,
+        "latitude": 33.88,
+        "longitude": 10.10,
+        "altitude_m": 5.0,
+        "governorate": "Gabes",
+    },
+    {
+        "name": "Jendouba Pluvio Conv",
+        "type": C.STATION_TYPE_CONV,
+        "parameter": C.PARAM_PLUVIO,
+        "unit": C.UNIT_MM,
+        "sampling_interval_min": None,
+        "latitude": 36.50,
+        "longitude": 8.78,
+        "altitude_m": 138.0,
+        "governorate": "Jendouba",
+    },
 ]
 
 
 def seed():
     db: Session = SessionLocal()
     try:
-        for username, pwd, full, role, region in USERS:
+        for username, pwd, full, role in USERS:
             if not db.query(User).filter(User.username == username).first():
                 db.add(User(username=username, full_name=full,
                             hashed_password=hash_password(pwd),
-                            role=role, region=region))
-        for code, name, region, gov in STATIONS:
-            if not db.query(Station).filter(Station.code == code).first():
-                db.add(Station(code=code, name=name, region=region, governorate=gov))
+                            role=role))
+        for st_data in STATIONS:
+            if not db.query(Station).filter(Station.name == st_data["name"]).first():
+                db.add(Station(**st_data))
         db.commit()
     finally:
         db.close()

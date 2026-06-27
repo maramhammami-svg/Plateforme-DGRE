@@ -36,11 +36,11 @@ def create_user(payload: UserIn, request: Request, db: Session = Depends(get_db)
         raise HTTPException(status.HTTP_409_CONFLICT, "Identifiant deja pris")
     u = User(username=payload.username, full_name=payload.full_name,
              hashed_password=hash_password(payload.password),
-             role=payload.role, region=payload.region)
+             role=payload.role)
     db.add(u); db.commit(); db.refresh(u)
     log_event(db, request=request, user=user, action="create_account",
               resource_type="account", resource_id=u.id,
-              detail={"username": u.username, "role": u.role, "region": u.region})
+              detail={"username": u.username, "role": u.role})
     return u
 
 
@@ -58,7 +58,6 @@ def update_user(user_id: int, payload: UserUpdate, request: Request,
     for k, v in data.items():
         setattr(target, k, v)
     db.commit(); db.refresh(target)
-    # Le changement de role / region est sensible : il est journalise en detail.
     log_event(db, request=request, user=user, action="update_account",
               resource_type="account", resource_id=target.id,
               detail={"from": old, "to": data})

@@ -1,5 +1,6 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Optional, Any
+from datetime import datetime
 
 
 class Token(BaseModel):
@@ -12,7 +13,6 @@ class UserOut(BaseModel):
     username: str
     full_name: Optional[str] = None
     role: str
-    region: str
     is_active: int = 1
 
     class Config:
@@ -24,35 +24,84 @@ class UserIn(BaseModel):
     password: str
     full_name: Optional[str] = None
     role: str
-    region: str
 
 
 class UserUpdate(BaseModel):
     role: Optional[str] = None
-    region: Optional[str] = None
     is_active: Optional[int] = None
 
 
 class StationIn(BaseModel):
-    code: str
     name: str
-    region: str
+    type: str
+    parameter: str
+    unit: str
+    sampling_interval_min: Optional[int] = None
+    latitude: float
+    longitude: float
+    altitude_m: Optional[float] = None
     governorate: Optional[str] = None
+
+    @field_validator("latitude")
+    @classmethod
+    def validate_lat(cls, v):
+        if not (30 <= v <= 38):
+            raise ValueError("latitude doit etre entre 30 et 38 (Tunisie WGS84)")
+        return v
+
+    @field_validator("longitude")
+    @classmethod
+    def validate_lon(cls, v):
+        if not (7 <= v <= 12):
+            raise ValueError("longitude doit etre entre 7 et 12 (Tunisie WGS84)")
+        return v
 
 
 class StationUpdate(BaseModel):
     name: Optional[str] = None
+    type: Optional[str] = None
+    parameter: Optional[str] = None
+    unit: Optional[str] = None
+    sampling_interval_min: Optional[int] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    altitude_m: Optional[float] = None
     governorate: Optional[str] = None
     status: Optional[str] = None
 
 
 class StationOut(BaseModel):
     id: int
-    code: str
     name: str
-    region: str
+    type: str
+    parameter: str
+    unit: str
+    sampling_interval_min: Optional[int] = None
+    latitude: float
+    longitude: float
+    altitude_m: Optional[float] = None
     governorate: Optional[str] = None
     status: str
+
+    class Config:
+        from_attributes = True
+
+
+class RawReadingIn(BaseModel):
+    station_id: int
+    timestamp: Optional[datetime] = None
+    valeur: Optional[float] = None
+    is_missing: bool = False
+    source: str
+
+
+class RawReadingOut(BaseModel):
+    id: int
+    station_id: int
+    timestamp: datetime
+    valeur: Optional[float] = None
+    is_missing: bool
+    source: str
 
     class Config:
         from_attributes = True
@@ -61,21 +110,24 @@ class StationOut(BaseModel):
 class ReadingIn(BaseModel):
     station_id: int
     date: str
-    value_mm: float
+    valeur: float
 
 
 class ReadingUpdate(BaseModel):
-    value_mm: Optional[float] = None
-    reason: Optional[str] = None
+    valeur_recalculee: Optional[float] = None
+    raison: Optional[str] = None
 
 
 class ReadingOut(BaseModel):
     id: int
     station_id: int
     date: str
-    value_mm: float
+    parameter: str
+    valeur_recalculee: Optional[float] = None
+    valeur_validee: Optional[float] = None
     status: str
     quality_flag: Optional[str] = None
+    source: str
 
     class Config:
         from_attributes = True
@@ -83,12 +135,13 @@ class ReadingOut(BaseModel):
 
 class ReadingVersionOut(BaseModel):
     version_no: int
-    old_value_mm: Optional[float] = None
-    new_value_mm: Optional[float] = None
+    ancienne_val: Optional[float] = None
+    nouvelle_val: Optional[float] = None
     old_status: Optional[str] = None
     new_status: Optional[str] = None
-    changed_by: int
-    reason: Optional[str] = None
+    post_validation: bool
+    auteur: int
+    raison: Optional[str] = None
 
     class Config:
         from_attributes = True

@@ -2,10 +2,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import Base, engine
 from .seed import seed
-from .routers import auth, stations, readings, events, admin
+from .routers import auth, stations, raw_readings, readings, events, admin
 
 app = FastAPI(
-    title="Plateforme DGRE - Banc d'essai pluviometrie",
+    title="Plateforme DGRE - Banc d'essai pluviometrie / limnimetrie",
     description="PoC instrumente : chaque action emet un evenement normalise (contrat d'observabilite).",
     version="0.2.0",
 )
@@ -28,6 +28,7 @@ def health():
 
 app.include_router(auth.router)
 app.include_router(stations.router)
+app.include_router(raw_readings.router)
 app.include_router(readings.router)
 app.include_router(events.router)
 app.include_router(admin.router)

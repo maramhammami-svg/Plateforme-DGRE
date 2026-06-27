@@ -9,14 +9,13 @@ from ..schemas import StationIn, StationUpdate, StationOut
 
 router = APIRouter(prefix="/stations", tags=["stations"])
 
+_WRITE_ROLES = {C.ROLE_RESPONSABLE, C.ROLE_ANALYSTE, C.ROLE_DIRECTEUR, C.ROLE_ADMIN}
+
 
 @router.get("", response_model=list[StationOut])
 def list_stations(request: Request, db: Session = Depends(get_db),
                   user: User = Depends(get_current_user)):
-    q = db.query(Station)
-    if user.role != C.ROLE_ADMIN:
-        q = q.filter(Station.region == user.region)
-    stations = q.all()
+    stations = db.query(Station).all()
     log_event(db, request=request, user=user, action="list_stations",
               resource_type="station", volume=len(stations))
     return stations
@@ -25,22 +24,23 @@ def list_stations(request: Request, db: Session = Depends(get_db),
 @router.post("", response_model=StationOut, status_code=201)
 def create_station(payload: StationIn, request: Request, db: Session = Depends(get_db),
                    user: User = Depends(get_current_user)):
-    if user.role == C.ROLE_AGENT:
+    if user.role not in _WRITE_ROLES:
         log_event(db, request=request, user=user, action="create_station",
                   result=C.RESULT_DENIED, resource_type="station",
                   detail={"reason": "role insuffisant"})
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Role insuffisant")
-    if user.role != C.ROLE_ADMIN and payload.region != user.region:
-        log_event(db, request=request, user=user, action="create_station",
-                  result=C.RESULT_DENIED, resource_type="station", region=payload.region,
-                  detail={"reason": "hors region"})
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Hors de votre region")
-    if db.query(Station).filter(Station.code == payload.code).first():
-        raise HTTPException(status.HTTP_409_CONFLICT, "Code station deja utilise")
+    if payload.type not in C.STATION_TYPES:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Type station invalide")
+    if payload.parameter not in C.PARAMETERS:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Parametre invalide")
+    if payload.unit not in C.UNITS:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Unite invalide")
+    if db.query(Station).filter(Station.name == payload.name).first():
+        raise HTTPException(status.HTTP_409_CONFLICT, "Nom de station deja utilise")
     st = Station(**payload.model_dump())
     db.add(st); db.commit(); db.refresh(st)
     log_event(db, request=request, user=user, action="create_station",
-              resource_type="station", resource_id=st.id, region=st.region)
+              resource_type="station", resource_id=st.id)
     return st
 
 
@@ -50,22 +50,23 @@ def update_station(station_id: int, payload: StationUpdate, request: Request,
     st = db.query(Station).filter(Station.id == station_id).first()
     if not st:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Station introuvable")
-    if user.role == C.ROLE_AGENT:
+    if user.role not in _WRITE_ROLES:
         log_event(db, request=request, user=user, action="update_station",
                   result=C.RESULT_DENIED, resource_type="station", resource_id=st.id,
                   detail={"reason": "role insuffisant"})
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Role insuffisant")
-    if user.role != C.ROLE_ADMIN and st.region != user.region:
-        log_event(db, request=request, user=user, action="update_station",
-                  result=C.RESULT_DENIED, resource_type="station", resource_id=st.id,
-                  region=st.region, detail={"reason": "hors region"})
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Hors de votre region")
     data = payload.model_dump(exclude_unset=True)
+    if "type" in data and data["type"] not in C.STATION_TYPES:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Type station invalide")
+    if "parameter" in data and data["parameter"] not in C.PARAMETERS:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Parametre invalide")
+    if "unit" in data and data["unit"] not in C.UNITS:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Unite invalide")
     old = {k: getattr(st, k) for k in data}
     for k, v in data.items():
         setattr(st, k, v)
     db.commit(); db.refresh(st)
     log_event(db, request=request, user=user, action="update_station",
-              resource_type="station", resource_id=st.id, region=st.region,
+              resource_type="station", resource_id=st.id,
               detail={"from": old, "to": data})
     return st
