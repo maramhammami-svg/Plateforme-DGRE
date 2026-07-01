@@ -14,6 +14,8 @@ class UserOut(BaseModel):
     full_name: Optional[str] = None
     role: str
     is_active: int = 1
+    unite_id: Optional[int] = None
+    superviseur_id: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -24,11 +26,25 @@ class UserIn(BaseModel):
     password: str
     full_name: Optional[str] = None
     role: str
+    unite_id: Optional[int] = None
+    superviseur_id: Optional[int] = None
 
 
 class UserUpdate(BaseModel):
     role: Optional[str] = None
     is_active: Optional[int] = None
+    unite_id: Optional[int] = None
+    superviseur_id: Optional[int] = None
+
+
+class UniteOut(BaseModel):
+    id: int
+    nom: str
+    type: str
+    parent_id: Optional[int] = None
+
+    class Config:
+        from_attributes = True
 
 
 class StationIn(BaseModel):
@@ -41,6 +57,7 @@ class StationIn(BaseModel):
     longitude: float
     altitude_m: Optional[float] = None
     governorate: Optional[str] = None
+    unite_id: Optional[int] = None
 
     @field_validator("latitude")
     @classmethod
@@ -68,6 +85,7 @@ class StationUpdate(BaseModel):
     altitude_m: Optional[float] = None
     governorate: Optional[str] = None
     status: Optional[str] = None
+    unite_id: Optional[int] = None
 
 
 class StationOut(BaseModel):
@@ -82,6 +100,7 @@ class StationOut(BaseModel):
     altitude_m: Optional[float] = None
     governorate: Optional[str] = None
     status: str
+    unite_id: Optional[int] = None
 
     class Config:
         from_attributes = True
