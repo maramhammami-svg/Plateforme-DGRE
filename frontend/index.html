@@ -129,7 +129,7 @@
   <div class="health"><span id="hdot" class="dot"></span><span id="htext">vérification…</span></div>
   <div class="spacer"></div>
   <div id="whoBox" class="who hidden">
-    <span class="chip"><b id="whoName"></b> · <span id="whoRegion"></span> · <span class="role" id="whoRole"></span></span>
+    <span class="chip"><b id="whoName"></b> · <span class="role" id="whoRole"></span></span>
     <button class="btn ghost sm" id="logoutBtn">Se déconnecter</button>
   </div>
 </div>
@@ -140,7 +140,7 @@
     <h1>Connexion</h1>
     <p>Accédez à la plateforme de relevés pluviométriques.</p>
     <label class="field">Identifiant
-      <input id="liUser" autocomplete="username" placeholder="ex. agent_nord">
+      <input id="liUser" autocomplete="username" placeholder="ex. agent1">
     </label>
     <label class="field">Mot de passe
       <input id="liPass" type="password" autocomplete="current-password" placeholder="••••••••">
@@ -148,7 +148,7 @@
     <button class="btn primary" id="loginBtn">Se connecter</button>
     <div class="hint">
       Comptes de démonstration :<br>
-      <code>admin / admin123</code> · <code>resp_nord / resp123</code> · <code>agent_nord / agent123</code>
+      <code>admin / admin123</code> · <code>responsable1 / resp123</code> · <code>agent1 / agent123</code>
     </div>
   </div>
 </section>
@@ -180,7 +180,7 @@
         <button class="btn primary" id="rAddBtn">Enregistrer le relevé</button>
       </div>
       <div class="row" style="margin-top:14px">
-        <label class="field">Import CSV
+        <label class="field">Import CSV brut (stations automatiques)
           <input id="rFile" type="file" accept=".csv">
         </label>
         <button class="btn" id="rImportBtn">Importer</button>
@@ -190,10 +190,10 @@
 
     <div class="card">
       <h2>Relevés de votre périmètre</h2>
-      <p class="sub">Limités à votre région (toutes régions pour l'administrateur).</p>
+      <p class="sub">Toutes les stations accessibles selon votre rôle.</p>
       <table>
-        <thead><tr><th>#</th><th>Station</th><th>Date</th><th>mm</th><th>Statut</th><th>Qualité</th><th></th></tr></thead>
-        <tbody id="readingsBody"><tr><td colspan="7" class="empty">Chargement…</td></tr></tbody>
+        <thead><tr><th>#</th><th>Station</th><th>Date</th><th>Recalculée</th><th>Validée</th><th>Source</th><th>Statut</th><th>Qualité</th><th></th></tr></thead>
+        <tbody id="readingsBody"><tr><td colspan="9" class="empty">Chargement…</td></tr></tbody>
       </table>
     </div>
   </section>
@@ -202,21 +202,34 @@
   <section id="tab-stations" class="hidden">
     <div class="card" id="stationCreateCard">
       <h2>Nouvelle station</h2>
-      <p class="sub">Réservé au responsable et à l'administrateur, dans votre région.</p>
+      <p class="sub">Réservé au responsable et à l'administrateur.</p>
       <div class="row">
-        <label class="field">Code <input id="sCode" placeholder="ST-010"></label>
         <label class="field">Nom <input id="sName" placeholder="Station …"></label>
-        <label class="field">Région <input id="sRegion" placeholder="Nord"></label>
+        <label class="field">Type
+          <select id="sType"><option value="automatique">automatique</option><option value="conventionnelle">conventionnelle</option></select>
+        </label>
+        <label class="field">Paramètre
+          <select id="sParameter"><option value="pluviometrie">pluviométrie</option><option value="limnimetrie">limnimétrie</option></select>
+        </label>
+        <label class="field">Unité
+          <select id="sUnit"><option value="mm">mm</option><option value="cm">cm</option></select>
+        </label>
         <label class="field">Gouvernorat <input id="sGov" placeholder="Bizerte"></label>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <label class="field">Latitude <input id="sLat" type="number" step="0.0001" placeholder="36.8000"></label>
+        <label class="field">Longitude <input id="sLon" type="number" step="0.0001" placeholder="10.1800"></label>
+        <label class="field">Altitude (m) <input id="sAlt" type="number" placeholder="(optionnel)"></label>
+        <label class="field">Intervalle (min) <input id="sSampling" type="number" placeholder="(optionnel)"></label>
         <button class="btn primary" id="sAddBtn">Créer la station</button>
       </div>
     </div>
     <div class="card">
       <h2>Stations</h2>
-      <p class="sub">Vue cloisonnée par région.</p>
+      <p class="sub">Toutes les stations de la plateforme.</p>
       <table>
-        <thead><tr><th>Code</th><th>Nom</th><th>Région</th><th>Gouvernorat</th><th>Statut</th><th></th></tr></thead>
-        <tbody id="stationsBody"><tr><td colspan="6" class="empty">Chargement…</td></tr></tbody>
+        <thead><tr><th>Nom</th><th>Type</th><th>Paramètre</th><th>Unité</th><th>Gouvernorat</th><th>Statut</th><th></th></tr></thead>
+        <tbody id="stationsBody"><tr><td colspan="7" class="empty">Chargement…</td></tr></tbody>
       </table>
     </div>
   </section>
@@ -233,8 +246,8 @@
         </label>
       </div>
       <table class="journal">
-        <thead><tr><th>Heure</th><th>Acteur</th><th>Rôle</th><th>Action</th><th>Ressource</th><th>Région</th><th>Vol.</th><th>IP</th><th>Résultat</th></tr></thead>
-        <tbody id="journalBody"><tr><td colspan="9" class="empty">Chargement…</td></tr></tbody>
+        <thead><tr><th>Heure</th><th>Acteur</th><th>Rôle</th><th>Action</th><th>Ressource</th><th>Vol.</th><th>IP</th><th>Résultat</th></tr></thead>
+        <tbody id="journalBody"><tr><td colspan="8" class="empty">Chargement…</td></tr></tbody>
       </table>
     </div>
   </section>
@@ -251,19 +264,21 @@
         <label class="field">Rôle
           <select id="uRole">
             <option value="agent">agent</option>
+            <option value="observateur">observateur</option>
+            <option value="analyste">analyste</option>
             <option value="responsable">responsable</option>
+            <option value="directeur">directeur</option>
             <option value="administrateur">administrateur</option>
           </select>
         </label>
-        <label class="field">Région <input id="uRegion" placeholder="Centre"></label>
         <button class="btn primary" id="uAddBtn">Créer le compte</button>
       </div>
     </div>
     <div class="card">
       <h2>Comptes</h2>
       <table>
-        <thead><tr><th>#</th><th>Identifiant</th><th>Nom</th><th>Rôle</th><th>Région</th><th>Actif</th></tr></thead>
-        <tbody id="usersBody"><tr><td colspan="6" class="empty">Chargement…</td></tr></tbody>
+        <thead><tr><th>#</th><th>Identifiant</th><th>Nom</th><th>Rôle</th><th>Actif</th></tr></thead>
+        <tbody id="usersBody"><tr><td colspan="5" class="empty">Chargement…</td></tr></tbody>
       </table>
     </div>
   </section>
@@ -328,7 +343,6 @@ function doLogout(){
 async function boot(){
   me = await api("/auth/me");
   $("#whoName").textContent = me.username;
-  $("#whoRegion").textContent = me.region;
   $("#whoRole").textContent = me.role;
   $("#whoBox").classList.remove("hidden");
   $("#loginView").classList.add("hidden");
@@ -360,10 +374,10 @@ async function loadStations(){
     // select
     const sel = $("#rStation"); sel.innerHTML = "";
     if(stationCache.length===0){ sel.innerHTML = '<option value="">aucune station</option>'; }
-    stationCache.forEach(s => { const o=el("option"); o.value=s.id; o.textContent=`${s.code} — ${s.name}`; sel.appendChild(o); });
+    stationCache.forEach(s => { const o=el("option"); o.value=s.id; o.textContent=s.name; sel.appendChild(o); });
     // table
     const tb = $("#stationsBody"); tb.innerHTML = "";
-    if(stationCache.length===0){ tb.innerHTML = '<tr><td colspan="6" class="empty">Aucune station dans votre périmètre.</td></tr>'; return; }
+    if(stationCache.length===0){ tb.innerHTML = '<tr><td colspan="7" class="empty">Aucune station.</td></tr>'; return; }
     stationCache.forEach(s => {
       const tr = el("tr");
       const st = s.status==="active" ? '<span class="badge b-ok">active</span>' : '<span class="badge b-warn">inactive</span>';
@@ -372,19 +386,33 @@ async function loadStations(){
         const next = s.status==="active" ? "inactive" : "active";
         act = `<button class="btn sm" data-station-toggle="${s.id}" data-next="${next}">${s.status==="active"?"Désactiver":"Activer"}</button>`;
       }
-      tr.innerHTML = `<td class="num">${esc(s.code)}</td><td>${esc(s.name)}</td><td>${esc(s.region)}</td>
-        <td>${esc(s.governorate||"")}</td><td>${st}</td><td class="actions">${act}</td>`;
+      tr.innerHTML = `<td>${esc(s.name)}</td><td>${esc(s.type||"")}</td><td>${esc(s.parameter||"")}</td>
+        <td>${esc(s.unit||"")}</td><td>${esc(s.governorate||"")}</td><td>${st}</td><td class="actions">${act}</td>`;
       tb.appendChild(tr);
     });
   }catch(e){ toast(e.detail, "err"); }
 }
 async function createStation(){
-  const payload = {code:$("#sCode").value.trim(), name:$("#sName").value.trim(),
-    region:$("#sRegion").value.trim(), governorate:$("#sGov").value.trim()||null};
-  if(!payload.code||!payload.name||!payload.region){ toast("Code, nom et région sont requis.", "err"); return; }
+  const lat = parseFloat($("#sLat").value);
+  const lon = parseFloat($("#sLon").value);
+  const payload = {
+    name: $("#sName").value.trim(),
+    type: $("#sType").value,
+    parameter: $("#sParameter").value,
+    unit: $("#sUnit").value,
+    governorate: $("#sGov").value.trim() || null,
+    latitude: isNaN(lat) ? null : lat,
+    longitude: isNaN(lon) ? null : lon,
+    altitude_m: $("#sAlt").value ? Number($("#sAlt").value) : null,
+    sampling_interval_min: $("#sSampling").value ? Number($("#sSampling").value) : null,
+  };
+  if(!payload.name || payload.latitude===null || payload.longitude===null){
+    toast("Nom, latitude et longitude sont requis.", "err"); return;
+  }
   try{
     await api("/stations", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)});
-    toast("Station créée.", "ok"); ["#sCode","#sName","#sGov"].forEach(i=>$(i).value="");
+    toast("Station créée.", "ok");
+    ["#sName","#sGov","#sLat","#sLon","#sAlt","#sSampling"].forEach(i=>$(i).value="");
     await loadStations();
   }catch(e){ toast(e.detail, "err"); }
 }
@@ -403,21 +431,23 @@ function statusBadge(s){
 async function loadReadings(){
   try{
     const rows = await api("/readings");
-    const byId = Object.fromEntries(stationCache.map(s=>[s.id, s.code]));
+    const byId = Object.fromEntries(stationCache.map(s=>[s.id, s.name]));
     const tb = $("#readingsBody"); tb.innerHTML = "";
-    if(rows.length===0){ tb.innerHTML = '<tr><td colspan="7" class="empty">Aucun relevé pour le moment.</td></tr>'; return; }
+    if(rows.length===0){ tb.innerHTML = '<tr><td colspan="9" class="empty">Aucun relevé pour le moment.</td></tr>'; return; }
     rows.forEach(r => {
       const tr = el("tr");
       const q = r.quality_flag ? `<span class="badge b-warn">${esc(r.quality_flag)}</span>` : "";
       const canValidate = me.role!=="agent";
       const canDelete = me.role!=="agent";
-      let act = `<button class="btn sm" data-correct="${r.id}" data-val="${r.value_mm}">Corriger</button>
+      let act = `<button class="btn sm" data-correct="${r.id}" data-val="${r.valeur_recalculee??''}">Corriger</button>
                  <button class="btn sm" data-versions="${r.id}">Historique</button>`;
       if(canValidate) act += ` <button class="btn sm" data-validate="${r.id}" data-dec="validate">Valider</button>
                                <button class="btn sm" data-validate="${r.id}" data-dec="reject">Rejeter</button>`;
       if(canDelete) act += ` <button class="btn sm" data-delete="${r.id}">Supprimer</button>`;
       tr.innerHTML = `<td class="num">${r.id}</td><td class="num">${esc(byId[r.station_id]||r.station_id)}</td>
-        <td class="num">${esc(r.date)}</td><td class="num">${r.value_mm}</td><td>${statusBadge(r.status)}</td>
+        <td class="num">${esc(r.date)}</td>
+        <td class="num">${r.valeur_recalculee??'—'}</td><td class="num">${r.valeur_validee??'—'}</td>
+        <td>${esc(r.source||'')}</td><td>${statusBadge(r.status)}</td>
         <td>${q}</td><td class="actions">${act}</td>`;
       tb.appendChild(tr);
     });
@@ -431,7 +461,7 @@ async function addReading(){
   if(!date || isNaN(val)){ toast("Date et valeur sont requises.", "err"); return; }
   try{
     await api("/readings", {method:"POST", headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({station_id:Number(sid), date, value_mm:val})});
+      body:JSON.stringify({station_id:Number(sid), date, valeur:val})});
     toast("Relevé enregistré.", "ok"); $("#rValue").value="";
     await loadReadings();
   }catch(e){ toast(e.detail, "err"); }   // ex. valeur aberrante → message + événement 'failure'
@@ -442,7 +472,7 @@ async function correctReading(id, current){
   const reason = prompt("Raison de la correction (facultatif) :", "") || null;
   try{
     await api("/readings/"+id, {method:"PATCH", headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({value_mm:val, reason})});
+      body:JSON.stringify({valeur_recalculee:val, raison:reason})});
     toast("Relevé corrigé (en attente de validation).", "ok"); await loadReadings();
   }catch(e){ toast(e.detail, "err"); }
 }
@@ -464,9 +494,10 @@ async function showVersions(id){
     let html = `<h3>Historique du relevé #${id}</h3>`;
     if(vers.length===0){ html += '<p class="empty">Aucune modification enregistrée.</p>'; }
     else{
-      html += '<table><thead><tr><th>v</th><th>Avant</th><th>Après</th><th>Statut</th><th>Raison</th></tr></thead><tbody>';
-      vers.forEach(v => html += `<tr><td class="num">${v.version_no}</td><td class="num">${v.old_value_mm}</td>
-        <td class="num">${v.new_value_mm}</td><td>${esc(v.old_status)}→${esc(v.new_status)}</td><td>${esc(v.reason||"")}</td></tr>`);
+      html += '<table><thead><tr><th>v</th><th>Avant</th><th>Après</th><th>Statut</th><th>Raison</th><th>Post-valid.</th></tr></thead><tbody>';
+      vers.forEach(v => html += `<tr><td class="num">${v.version_no}</td><td class="num">${v.ancienne_val??'—'}</td>
+        <td class="num">${v.nouvelle_val??'—'}</td><td>${esc(v.old_status??'')}→${esc(v.new_status??'')}</td>
+        <td>${esc(v.raison||"")}</td><td>${v.post_validation?'<span class="badge b-bad">oui</span>':''}</td></tr>`);
       html += '</tbody></table>';
     }
     openModal(html);
@@ -476,7 +507,7 @@ async function importCSV(){
   const f = $("#rFile").files[0]; if(!f){ toast("Choisissez un fichier CSV.", "err"); return; }
   const fd = new FormData(); fd.append("file", f);
   try{
-    const res = await api("/readings/import", {method:"POST", body:fd});
+    const res = await api("/raw-readings/import", {method:"POST", body:fd});
     toast(`Import : ${res.inserted} insérés, ${res.rejected} rejetés.`, "ok");
     $("#rFile").value=""; await loadReadings();
   }catch(e){ toast(e.detail, "err"); }
@@ -510,7 +541,7 @@ async function loadJournal(){
       tr.innerHTML = `<td class="ts">${ev.id}</td><td>${esc(ev.actor_username||"—")}</td>
         <td>${esc(ev.role||"")}</td><td class="act">${esc(ev.action)}</td>
         <td>${esc(ev.resource_type||"")}${ev.resource_id?(" #"+esc(ev.resource_id)):""}</td>
-        <td>${esc(ev.region||"")}</td><td>${ev.volume??""}</td><td>${esc(ev.channel_ip||"")}</td>
+        <td>${ev.volume??""}</td><td>${esc(ev.channel_ip||"")}</td>
         <td>${resultBadge(ev.result)}</td>`;
       tb.appendChild(tr);
     });
@@ -525,17 +556,17 @@ async function loadUsers(){
     const tb = $("#usersBody"); tb.innerHTML = "";
     rows.forEach(u => { const tr=el("tr");
       tr.innerHTML = `<td class="num">${u.id}</td><td>${esc(u.username)}</td><td>${esc(u.full_name||"")}</td>
-        <td>${esc(u.role)}</td><td>${esc(u.region)}</td><td>${u.is_active?'<span class="badge b-ok">oui</span>':'<span class="badge b-bad">non</span>'}</td>`;
+        <td>${esc(u.role)}</td><td>${u.is_active?'<span class="badge b-ok">oui</span>':'<span class="badge b-bad">non</span>'}</td>`;
       tb.appendChild(tr); });
   }catch(e){ toast(e.detail, "err"); }
 }
 async function createUser(){
   const payload = {username:$("#uUser").value.trim(), password:$("#uPass").value,
-    full_name:$("#uFull").value.trim()||null, role:$("#uRole").value, region:$("#uRegion").value.trim()};
-  if(!payload.username||!payload.password||!payload.region){ toast("Identifiant, mot de passe et région requis.", "err"); return; }
+    full_name:$("#uFull").value.trim()||null, role:$("#uRole").value};
+  if(!payload.username||!payload.password){ toast("Identifiant et mot de passe requis.", "err"); return; }
   try{
     await api("/admin/users", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)});
-    toast("Compte créé.", "ok"); ["#uUser","#uPass","#uFull","#uRegion"].forEach(i=>$(i).value="");
+    toast("Compte créé.", "ok"); ["#uUser","#uPass","#uFull"].forEach(i=>$(i).value="");
     await loadUsers();
   }catch(e){ toast(e.detail, "err"); }
 }
