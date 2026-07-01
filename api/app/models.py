@@ -6,6 +6,26 @@ from sqlalchemy.orm import relationship
 from .database import Base
 
 
+class UniteOrganisationnelle(Base):
+    __tablename__ = "unites"
+    id = Column(Integer, primary_key=True)
+    nom = Column(String, nullable=False, index=True)
+    type = Column(String, nullable=False)
+    parent_id = Column(Integer, ForeignKey("unites.id"), nullable=True, index=True)
+
+    parent = relationship(
+        "UniteOrganisationnelle",
+        back_populates="enfants",
+        remote_side=[id],
+        foreign_keys=[parent_id],
+    )
+    enfants = relationship(
+        "UniteOrganisationnelle",
+        back_populates="parent",
+        foreign_keys=[parent_id],
+    )
+
+
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True)
@@ -15,6 +35,21 @@ class User(Base):
     role = Column(String, nullable=False)
     is_active = Column(Integer, default=1)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    unite_id = Column(Integer, ForeignKey("unites.id"), nullable=True, index=True)
+    superviseur_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+
+    unite = relationship("UniteOrganisationnelle", foreign_keys=[unite_id])
+    superviseur = relationship(
+        "User",
+        back_populates="subordonnes",
+        remote_side=[id],
+        foreign_keys=[superviseur_id],
+    )
+    subordonnes = relationship(
+        "User",
+        back_populates="superviseur",
+        foreign_keys=[superviseur_id],
+    )
 
 
 class Station(Base):
@@ -31,7 +66,9 @@ class Station(Base):
     governorate = Column(String, nullable=True)
     status = Column(String, default="active")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    unite_id = Column(Integer, ForeignKey("unites.id"), nullable=True, index=True)
 
+    unite = relationship("UniteOrganisationnelle", foreign_keys=[unite_id])
     raw_readings = relationship("RawReading", back_populates="station")
     readings = relationship("Reading", back_populates="station")
 

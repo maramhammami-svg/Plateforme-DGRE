@@ -17,10 +17,17 @@ PARAM_PLUVIO = "pluviometrie"
 PARAM_LIMNI = "limnimetrie"
 PARAMETERS = {PARAM_PLUVIO, PARAM_LIMNI}
 
-# Unite
+# Unite de mesure
 UNIT_MM = "mm"
 UNIT_CM = "cm"
 UNITS = {UNIT_MM, UNIT_CM}
+
+# Unite organisationnelle DGRE
+UNITE_DIRECTION = "direction"
+UNITE_DEPARTEMENT = "departement"
+UNITE_SOUS_DEPT = "sous_departement"
+UNITE_SERVICE = "service"
+UNITE_TYPES = {UNITE_DIRECTION, UNITE_DEPARTEMENT, UNITE_SOUS_DEPT, UNITE_SERVICE}
 
 # Statut d'un releve
 STATUS_PENDING = "pending"
