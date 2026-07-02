@@ -48,6 +48,7 @@ class UniteOut(BaseModel):
 
 
 class StationIn(BaseModel):
+    code: str
     name: str
     type: str
     parameter: str
@@ -75,6 +76,7 @@ class StationIn(BaseModel):
 
 
 class StationUpdate(BaseModel):
+    code: Optional[str] = None
     name: Optional[str] = None
     type: Optional[str] = None
     parameter: Optional[str] = None
@@ -90,6 +92,7 @@ class StationUpdate(BaseModel):
 
 class StationOut(BaseModel):
     id: int
+    code: str
     name: str
     type: str
     parameter: str

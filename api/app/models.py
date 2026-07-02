@@ -55,6 +55,7 @@ class User(Base):
 class Station(Base):
     __tablename__ = "stations"
     id = Column(Integer, primary_key=True)
+    code = Column(String, unique=True, nullable=False, index=True)
     name = Column(String, unique=True, nullable=False, index=True)
     type = Column(String, nullable=False)            # automatique | conventionnelle
     parameter = Column(String, nullable=False)       # pluviometrie | limnimetrie

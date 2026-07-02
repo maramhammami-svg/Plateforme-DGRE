@@ -88,40 +88,6 @@ def seed():
             _get_or_create_user(db, username, full_name, role,
                                 unite_id=unite_id, superviseur_id=sup_id)
 
-        # ── ÉTAPE 3 : Stations démo ─────────────────────────────────────────
-        for st_data in [
-            {
-                "name": "Bizerte Pluvio Auto",
-                "type": C.STATION_TYPE_AUTO, "parameter": C.PARAM_PLUVIO, "unit": C.UNIT_MM,
-                "sampling_interval_min": 15, "latitude": 37.27, "longitude": 9.87,
-                "altitude_m": 12.0, "governorate": "Bizerte",
-            },
-            {
-                "name": "Beja Pluvio Auto",
-                "type": C.STATION_TYPE_AUTO, "parameter": C.PARAM_PLUVIO, "unit": C.UNIT_MM,
-                "sampling_interval_min": 15, "latitude": 36.73, "longitude": 9.18,
-                "altitude_m": 150.0, "governorate": "Beja",
-            },
-            {
-                "name": "Gabes Limni Auto",
-                "type": C.STATION_TYPE_AUTO, "parameter": C.PARAM_LIMNI, "unit": C.UNIT_CM,
-                "sampling_interval_min": 60, "latitude": 33.88, "longitude": 10.10,
-                "altitude_m": 5.0, "governorate": "Gabes",
-            },
-            {
-                "name": "Jendouba Pluvio Conv",
-                "type": C.STATION_TYPE_CONV, "parameter": C.PARAM_PLUVIO, "unit": C.UNIT_MM,
-                "sampling_interval_min": None, "latitude": 36.50, "longitude": 8.78,
-                "altitude_m": 138.0, "governorate": "Jendouba",
-            },
-        ]:
-            st = db.query(Station).filter_by(name=st_data["name"]).first()
-            if not st:
-                st = Station(**st_data)
-                db.add(st)
-                db.flush()
-            st.unite_id = svc_reseaux.id
-
         db.commit()
     finally:
         db.close()
