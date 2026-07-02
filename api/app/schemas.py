@@ -183,7 +183,8 @@ class EventOut(BaseModel):
     action: str
     resource_type: Optional[str] = None
     resource_id: Optional[str] = None
-    region: Optional[str] = None
+    unite_acteur: Optional[str] = None
+    unite_ressource: Optional[str] = None
     volume: Optional[int] = None
     channel_ip: Optional[str] = None
     result: str
