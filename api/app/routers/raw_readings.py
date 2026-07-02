@@ -1,12 +1,13 @@
 import csv
 import io
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, status, Request, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status, Request, UploadFile, File, Header
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import RawReading, Reading, Station, User
 from ..events import log_event
 from ..deps import get_current_user
+from ..security import verify_password
 from .. import constants as C
 from ..schemas import RawReadingIn, RawReadingOut, ImportResult
 
@@ -31,7 +32,7 @@ def _aggregate_day(db: Session, station: Station, date_str: str) -> float | None
     return sum(valeurs) / len(valeurs)  # limnimetrie -> moyenne
 
 
-def _upsert_daily_reading(db: Session, station: Station, date_str: str, actor_id: int):
+def _upsert_daily_reading(db: Session, station: Station, date_str: str, actor_id: int | None):
     """Cree ou met a jour le releve journalier correspondant a un jour de brut.
     Ne touche pas a valeur_validee si le releve est deja valide (gel)."""
     r = (db.query(Reading)
@@ -55,10 +56,16 @@ def _upsert_daily_reading(db: Session, station: Station, date_str: str, actor_id
 @router.post("", response_model=RawReadingOut, status_code=201)
 def create_raw_reading(payload: RawReadingIn, request: Request,
                        db: Session = Depends(get_db),
-                       user: User = Depends(get_current_user)):
+                       x_station_key: str | None = Header(default=None, alias="X-Station-Key")):
     st = db.query(Station).filter(Station.id == payload.station_id).first()
     if not st:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Station introuvable")
+    if (not x_station_key or not st.hashed_station_key
+            or not verify_password(x_station_key, st.hashed_station_key)):
+        log_event(db, request=request, user=None, action="ingest_raw",
+                  result=C.RESULT_DENIED, resource_type="station", resource_id=st.id,
+                  detail={"reason": "cle station invalide"})
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Cle station invalide")
     if st.type != C.STATION_TYPE_AUTO:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY,
                             "Releves bruts reserves aux stations automatiques")
@@ -66,9 +73,9 @@ def create_raw_reading(payload: RawReadingIn, request: Request,
     rr = RawReading(station_id=st.id, timestamp=ts, valeur=payload.valeur,
                     is_missing=payload.is_missing, source=payload.source)
     db.add(rr); db.commit(); db.refresh(rr)
-    _upsert_daily_reading(db, st, ts.strftime("%Y-%m-%d"), user.id)
-    log_event(db, request=request, user=user, action="create_raw_reading",
-              resource_type="raw_reading", resource_id=rr.id, volume=1)
+    _upsert_daily_reading(db, st, ts.strftime("%Y-%m-%d"), None)
+    log_event(db, request=request, user=None, action="ingest_raw",
+              resource_type="station", resource_id=st.id, volume=1)
     return rr
 
 

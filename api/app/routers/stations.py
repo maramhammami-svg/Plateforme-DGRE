@@ -5,7 +5,8 @@ from ..models import Station, User
 from ..events import log_event
 from ..deps import get_current_user
 from .. import constants as C
-from ..schemas import StationIn, StationUpdate, StationOut
+from ..schemas import StationIn, StationUpdate, StationOut, StationCreated
+from ..security import generate_station_key, hash_password
 
 router = APIRouter(prefix="/stations", tags=["stations"])
 
@@ -21,7 +22,7 @@ def list_stations(request: Request, db: Session = Depends(get_db),
     return stations
 
 
-@router.post("", response_model=StationOut, status_code=201)
+@router.post("", response_model=StationCreated, status_code=201)
 def create_station(payload: StationIn, request: Request, db: Session = Depends(get_db),
                    user: User = Depends(get_current_user)):
     if user.role not in _WRITE_ROLES:
@@ -37,11 +38,13 @@ def create_station(payload: StationIn, request: Request, db: Session = Depends(g
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Unite invalide")
     if db.query(Station).filter(Station.name == payload.name).first():
         raise HTTPException(status.HTTP_409_CONFLICT, "Nom de station deja utilise")
-    st = Station(**payload.model_dump())
+    station_key = generate_station_key()
+    st = Station(**payload.model_dump(), hashed_station_key=hash_password(station_key))
     db.add(st); db.commit(); db.refresh(st)
     log_event(db, request=request, user=user, action="create_station",
               resource_type="station", resource_id=st.id)
-    return st
+    data = StationOut.model_validate(st).model_dump()
+    return StationCreated(**data, station_key=station_key)
 
 
 @router.patch("/{station_id}", response_model=StationOut)

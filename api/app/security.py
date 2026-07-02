@@ -1,3 +1,4 @@
+import secrets
 from datetime import datetime, timedelta, timezone
 from jose import jwt, JWTError
 from passlib.context import CryptContext
@@ -12,6 +13,10 @@ def hash_password(p: str) -> str:
 
 def verify_password(p: str, hashed: str) -> bool:
     return pwd.verify(p, hashed)
+
+
+def generate_station_key() -> str:
+    return secrets.token_urlsafe(24)
 
 
 def create_access_token(sub: str) -> str:

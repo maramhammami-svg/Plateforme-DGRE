@@ -67,6 +67,7 @@ class Station(Base):
     status = Column(String, default="active")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     unite_id = Column(Integer, ForeignKey("unites.id"), nullable=True, index=True)
+    hashed_station_key = Column(String, nullable=True)
 
     unite = relationship("UniteOrganisationnelle", foreign_keys=[unite_id])
     raw_readings = relationship("RawReading", back_populates="station")
@@ -98,7 +99,7 @@ class Reading(Base):
     status = Column(String, default="pending")
     quality_flag = Column(String, nullable=True)
     source = Column(String, nullable=False)
-    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     validated_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     validated_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

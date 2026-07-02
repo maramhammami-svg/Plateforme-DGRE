@@ -106,6 +106,10 @@ class StationOut(BaseModel):
         from_attributes = True
 
 
+class StationCreated(StationOut):
+    station_key: str
+
+
 class RawReadingIn(BaseModel):
     station_id: int
     timestamp: Optional[datetime] = None
