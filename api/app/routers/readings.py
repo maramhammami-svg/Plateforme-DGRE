@@ -6,15 +6,12 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Reading, ReadingVersion, Station, User
 from ..events import log_event
-from ..deps import get_current_user
+from ..deps import get_current_user, require_role, scoped_station_ids
 from .. import constants as C
 from ..schemas import (ReadingIn, ReadingUpdate, ReadingOut, ReadingVersionOut,
                        ValidateIn)
 
 router = APIRouter(prefix="/readings", tags=["readings"])
-
-_VALIDATE_ROLES = {C.ROLE_RESPONSABLE, C.ROLE_ANALYSTE, C.ROLE_DIRECTEUR, C.ROLE_ADMIN}
-_DELETE_ROLES = {C.ROLE_RESPONSABLE, C.ROLE_ANALYSTE, C.ROLE_DIRECTEUR, C.ROLE_ADMIN}
 
 
 def _station_or_404(db, station_id):
@@ -41,7 +38,10 @@ def export_readings(request: Request, station_id: int | None = None,
                     db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     """Export CSV des releves journaliers.
     Le volume exporte est journalise : un export massif devient un signal d'exfiltration."""
+    ids = scoped_station_ids(db, user)
     q = db.query(Reading).join(Station)
+    if ids is not None:
+        q = q.filter(Reading.station_id.in_(ids))
     if station_id is not None:
         q = q.filter(Reading.station_id == station_id)
     rows = q.all()
@@ -64,7 +64,10 @@ def export_readings(request: Request, station_id: int | None = None,
 @router.get("", response_model=list[ReadingOut])
 def list_readings(request: Request, station_id: int | None = None,
                   db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    ids = scoped_station_ids(db, user)
     q = db.query(Reading)
+    if ids is not None:
+        q = q.filter(Reading.station_id.in_(ids))
     if station_id is not None:
         q = q.filter(Reading.station_id == station_id)
     rows = q.order_by(Reading.id.desc()).all()
@@ -75,9 +78,16 @@ def list_readings(request: Request, station_id: int | None = None,
 
 @router.post("", response_model=ReadingOut, status_code=201)
 def create_reading(payload: ReadingIn, request: Request, db: Session = Depends(get_db),
-                   user: User = Depends(get_current_user)):
+                   user: User = Depends(require_role(
+                       C.ROLE_AGENT, C.ROLE_RESPONSABLE, C.ROLE_ADMIN,
+                       action="create_reading", resource_type="reading"))):
     """Saisie manuelle d'un releve journalier — stations conventionnelles uniquement."""
     st = _station_or_404(db, payload.station_id)
+    ids = scoped_station_ids(db, user)
+    if ids is not None and st.id not in ids:
+        log_event(db, request=request, user=user, action="create_reading",
+                  result=C.RESULT_DENIED, resource_type="reading", resource_id=st.id)
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Station hors de votre perimetre")
     if st.type != C.STATION_TYPE_CONV:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY,
                             "La saisie manuelle est reservee aux stations conventionnelles")
@@ -104,12 +114,21 @@ def create_reading(payload: ReadingIn, request: Request, db: Session = Depends(g
 
 @router.patch("/{reading_id}", response_model=ReadingOut)
 def correct_reading(reading_id: int, payload: ReadingUpdate, request: Request,
-                    db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+                    db: Session = Depends(get_db),
+                    user: User = Depends(require_role(
+                        C.ROLE_AGENT, C.ROLE_RESPONSABLE, C.ROLE_ADMIN,
+                        action="update_reading", resource_type="reading"))):
     """Correction versionnee d'un releve.
     post_validation=True si le releve etait deja valide au moment de la correction."""
     r = db.query(Reading).filter(Reading.id == reading_id).first()
     if not r:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Releve introuvable")
+
+    ids = scoped_station_ids(db, user)
+    if ids is not None and r.station_id not in ids:
+        log_event(db, request=request, user=user, action="update_reading",
+                  result=C.RESULT_DENIED, resource_type="reading", resource_id=r.id)
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Releve hors de votre perimetre")
 
     was_validated = r.status == C.STATUS_VALIDATED
     if was_validated and user.role == C.ROLE_AGENT:
@@ -148,15 +167,17 @@ def correct_reading(reading_id: int, payload: ReadingUpdate, request: Request,
 
 @router.delete("/{reading_id}", status_code=204)
 def delete_reading(reading_id: int, request: Request, db: Session = Depends(get_db),
-                   user: User = Depends(get_current_user)):
+                   user: User = Depends(require_role(
+                       C.ROLE_RESPONSABLE, C.ROLE_ADMIN,
+                       action="delete_reading", resource_type="reading"))):
     r = db.query(Reading).filter(Reading.id == reading_id).first()
     if not r:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Releve introuvable")
-    if user.role not in _DELETE_ROLES:
+    ids = scoped_station_ids(db, user)
+    if ids is not None and r.station_id not in ids:
         log_event(db, request=request, user=user, action="delete_reading",
-                  result=C.RESULT_DENIED, resource_type="reading", resource_id=r.id,
-                  detail={"reason": "role insuffisant"})
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Suppression reservee au responsable")
+                  result=C.RESULT_DENIED, resource_type="reading", resource_id=r.id)
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Releve hors de votre perimetre")
     log_event(db, request=request, user=user, action="delete_reading",
               resource_type="reading", resource_id=r.id, volume=1,
               detail={"valeur_recalculee": r.valeur_recalculee, "status": r.status})
@@ -177,15 +198,18 @@ def reading_versions(reading_id: int, request: Request, db: Session = Depends(ge
 
 @router.post("/{reading_id}/validate", response_model=ReadingOut)
 def validate_reading(reading_id: int, payload: ValidateIn, request: Request,
-                     db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+                     db: Session = Depends(get_db),
+                     user: User = Depends(require_role(
+                         C.ROLE_RESPONSABLE, C.ROLE_ADMIN,
+                         action="validate_reading", resource_type="reading"))):
     r = db.query(Reading).filter(Reading.id == reading_id).first()
     if not r:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Releve introuvable")
-    if user.role not in _VALIDATE_ROLES:
+    ids = scoped_station_ids(db, user)
+    if ids is not None and r.station_id not in ids:
         log_event(db, request=request, user=user, action="validate_reading",
-                  result=C.RESULT_DENIED, resource_type="reading", resource_id=r.id,
-                  detail={"reason": "abus de privilege"})
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Validation reservee au responsable")
+                  result=C.RESULT_DENIED, resource_type="reading", resource_id=r.id)
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Releve hors de votre perimetre")
     new_status = C.STATUS_VALIDATED if payload.decision == "validate" else C.STATUS_REJECTED
     old_status = r.status
     r.status = new_status

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import RawReading, Reading, Station, User
 from ..events import log_event
-from ..deps import get_current_user
+from ..deps import get_current_user, scoped_station_ids
 from ..security import verify_password
 from .. import constants as C
 from ..schemas import RawReadingIn, RawReadingOut, ImportResult
@@ -84,7 +84,10 @@ def list_raw_readings(request: Request, station_id: int | None = None,
                       date: str | None = None,
                       db: Session = Depends(get_db),
                       user: User = Depends(get_current_user)):
+    ids = scoped_station_ids(db, user)
     q = db.query(RawReading)
+    if ids is not None:
+        q = q.filter(RawReading.station_id.in_(ids))
     if station_id is not None:
         q = q.filter(RawReading.station_id == station_id)
     if date is not None:

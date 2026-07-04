@@ -4,7 +4,7 @@ from ..database import get_db
 from ..models import User
 from ..security import hash_password
 from ..events import log_event
-from ..deps import get_current_user
+from ..deps import get_current_user, require_role
 from .. import constants as C
 from ..schemas import UserIn, UserUpdate, UserOut
 
@@ -28,8 +28,8 @@ def list_users(request: Request, db: Session = Depends(get_db),
 
 @router.post("/users", response_model=UserOut, status_code=201)
 def create_user(payload: UserIn, request: Request, db: Session = Depends(get_db),
-                user: User = Depends(get_current_user)):
-    _require_admin(db, request, user, "create_account")
+                user: User = Depends(require_role(
+                    C.ROLE_ADMIN, action="create_account", resource_type="account"))):
     if payload.role not in C.ROLES:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Role inconnu")
     if db.query(User).filter(User.username == payload.username).first():
@@ -46,8 +46,9 @@ def create_user(payload: UserIn, request: Request, db: Session = Depends(get_db)
 
 @router.patch("/users/{user_id}", response_model=UserOut)
 def update_user(user_id: int, payload: UserUpdate, request: Request,
-                db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    _require_admin(db, request, user, "update_account")
+                db: Session = Depends(get_db),
+                user: User = Depends(require_role(
+                    C.ROLE_ADMIN, action="update_account", resource_type="account"))):
     target = db.query(User).filter(User.id == user_id).first()
     if not target:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Compte introuvable")
