@@ -73,6 +73,7 @@ class Station(Base):
     unite = relationship("UniteOrganisationnelle", foreign_keys=[unite_id])
     raw_readings = relationship("RawReading", back_populates="station")
     readings = relationship("Reading", back_populates="station")
+    consolidations = relationship("Consolidation", back_populates="station")
 
 
 class RawReading(Base):
@@ -144,3 +145,44 @@ class Event(Base):
     channel_ip = Column(String, nullable=True)
     result = Column(String, nullable=False)
     detail = Column(JSON, nullable=True)
+
+
+class Consolidation(Base):
+    """Resume annuel (annee hydrologique sept->aout) importe de yasra.xlsx.
+    Une ligne par station et par annee hydro. Valeurs reprises telles quelles
+    de la source (aucun recalcul) : les incoherences sont un signal pour l'agent."""
+    __tablename__ = "consolidations"
+    id = Column(Integer, primary_key=True)
+    station_id = Column(Integer, ForeignKey("stations.id"), nullable=False, index=True)
+    annee_hydro = Column(Integer, nullable=False, index=True)  # annee de debut (2024 = sept 2024 -> aout 2025)
+
+    # 12 mois, ordre hydrologique
+    sept = Column(Float, nullable=True)
+    octo = Column(Float, nullable=True)
+    nove = Column(Float, nullable=True)
+    dece = Column(Float, nullable=True)
+    janv = Column(Float, nullable=True)
+    fevr = Column(Float, nullable=True)
+    mars = Column(Float, nullable=True)
+    avri = Column(Float, nullable=True)
+    mai = Column(Float, nullable=True)
+    juin = Column(Float, nullable=True)
+    juil = Column(Float, nullable=True)
+    aout = Column(Float, nullable=True)
+
+    # 4 saisons
+    automne = Column(Float, nullable=True)
+    hiver = Column(Float, nullable=True)
+    printemps = Column(Float, nullable=True)
+    ete = Column(Float, nullable=True)
+
+    # synthese
+    total = Column(Float, nullable=True)
+    normale = Column(Float, nullable=True)      # MOY : reference pluriannuelle
+    pourcentage = Column(Float, nullable=True)  # total / normale * 100
+
+    station = relationship("Station", back_populates="consolidations")
+
+    __table_args__ = (
+        UniqueConstraint("station_id", "annee_hydro", name="uq_consolidation_station_annee"),
+    )

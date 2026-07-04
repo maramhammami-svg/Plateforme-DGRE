@@ -199,3 +199,55 @@ class EventOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ConsolidationOut(BaseModel):
+    id: int
+    station_id: int
+    annee_hydro: int
+    sept: Optional[float] = None
+    octo: Optional[float] = None
+    nove: Optional[float] = None
+    dece: Optional[float] = None
+    janv: Optional[float] = None
+    fevr: Optional[float] = None
+    mars: Optional[float] = None
+    avri: Optional[float] = None
+    mai: Optional[float] = None
+    juin: Optional[float] = None
+    juil: Optional[float] = None
+    aout: Optional[float] = None
+    automne: Optional[float] = None
+    hiver: Optional[float] = None
+    printemps: Optional[float] = None
+    ete: Optional[float] = None
+    total: Optional[float] = None
+    normale: Optional[float] = None
+    pourcentage: Optional[float] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ConsolidationIn(BaseModel):
+    station_id: int
+    annee_hydro: int
+    sept: Optional[float] = None
+    octo: Optional[float] = None
+    nove: Optional[float] = None
+    dece: Optional[float] = None
+    janv: Optional[float] = None
+    fevr: Optional[float] = None
+    mars: Optional[float] = None
+    avri: Optional[float] = None
+    mai: Optional[float] = None
+    juin: Optional[float] = None
+    juil: Optional[float] = None
+    aout: Optional[float] = None
+    automne: Optional[float] = None
+    hiver: Optional[float] = None
+    printemps: Optional[float] = None
+    ete: Optional[float] = None
+    total: Optional[float] = None
+    normale: Optional[float] = None
+    pourcentage: Optional[float] = None
