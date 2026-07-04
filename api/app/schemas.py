@@ -251,3 +251,20 @@ class ConsolidationIn(BaseModel):
     total: Optional[float] = None
     normale: Optional[float] = None
     pourcentage: Optional[float] = None
+
+
+class DocumentIn(BaseModel):
+    nom: str
+    taille_ko: int = 0
+
+
+class DocumentOut(BaseModel):
+    id: int
+    nom: str
+    owner_id: int
+    unite_id: Optional[int] = None
+    taille_ko: int
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True

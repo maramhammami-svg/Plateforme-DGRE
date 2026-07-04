@@ -186,3 +186,19 @@ class Consolidation(Base):
     __table_args__ = (
         UniqueConstraint("station_id", "annee_hydro", name="uq_consolidation_station_annee"),
     )
+
+
+class Document(Base):
+    """Metadonnees d'un document interne (aucun binaire stocke).
+    L'unite du document = celle de son owner. Upload/download journalises :
+    un acces ou unite_acteur != unite_ressource est un signal hors-perimetre."""
+    __tablename__ = "documents"
+    id = Column(Integer, primary_key=True)
+    nom = Column(String, nullable=False)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    unite_id = Column(Integer, ForeignKey("unites.id"), nullable=True, index=True)
+    taille_ko = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    owner = relationship("User", foreign_keys=[owner_id])
+    unite = relationship("UniteOrganisationnelle", foreign_keys=[unite_id])
