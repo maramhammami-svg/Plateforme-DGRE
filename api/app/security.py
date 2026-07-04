@@ -19,6 +19,11 @@ def generate_station_key() -> str:
     return secrets.token_urlsafe(24)
 
 
+def generate_password(n: int = 12) -> str:
+    """Mot de passe aleatoire url-safe, pour reset admin (montre une seule fois)."""
+    return secrets.token_urlsafe(n)
+
+
 def create_access_token(sub: str) -> str:
     exp = datetime.now(timezone.utc) + timedelta(minutes=settings.jwt_expire_minutes)
     payload = {"sub": sub, "exp": exp}

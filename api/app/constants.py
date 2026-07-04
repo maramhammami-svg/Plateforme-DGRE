@@ -55,3 +55,6 @@ RESULT_DENIED = "denied"
 # Seuils qualite de depart (a calibrer)
 PLAUSIBLE_MAX_MM = 350.0   # > rejet (saisie manuelle)
 SUSPECT_MAX_MM = 200.0     # > signalement (mais accepte)
+
+# Securite comptes
+MAX_FAILED_ATTEMPTS = 3

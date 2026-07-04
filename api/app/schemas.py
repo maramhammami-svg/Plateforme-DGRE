@@ -14,6 +14,7 @@ class UserOut(BaseModel):
     full_name: Optional[str] = None
     role: str
     is_active: int = 1
+    locked: int = 0
     unite_id: Optional[int] = None
     superviseur_id: Optional[int] = None
 
@@ -35,6 +36,17 @@ class UserUpdate(BaseModel):
     is_active: Optional[int] = None
     unite_id: Optional[int] = None
     superviseur_id: Optional[int] = None
+
+
+class PasswordChange(BaseModel):
+    ancien: str
+    nouveau: str
+
+
+class PasswordResetOut(BaseModel):
+    user_id: int
+    username: str
+    nouveau_mot_de_passe: str   # renvoye une seule fois, jamais restocke
 
 
 class UniteOut(BaseModel):

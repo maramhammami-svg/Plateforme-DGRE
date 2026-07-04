@@ -37,6 +37,8 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     unite_id = Column(Integer, ForeignKey("unites.id"), nullable=True, index=True)
     superviseur_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    failed_attempts = Column(Integer, default=0, nullable=False)
+    locked = Column(Integer, default=0, nullable=False)
 
     unite = relationship("UniteOrganisationnelle", foreign_keys=[unite_id])
     superviseur = relationship(

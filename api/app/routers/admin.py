@@ -2,11 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import User
-from ..security import hash_password
+from ..security import hash_password, generate_password
 from ..events import log_event
 from ..deps import get_current_user, require_role
 from .. import constants as C
-from ..schemas import UserIn, UserUpdate, UserOut
+from ..schemas import UserIn, UserUpdate, UserOut, PasswordResetOut
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -62,4 +62,35 @@ def update_user(user_id: int, payload: UserUpdate, request: Request,
     log_event(db, request=request, user=user, action="update_account",
               resource_type="account", resource_id=target.id,
               detail={"from": old, "to": data})
+    return target
+
+
+@router.post("/users/{user_id}/reset-password", response_model=PasswordResetOut)
+def reset_password(user_id: int, request: Request, db: Session = Depends(get_db),
+                   user: User = Depends(require_role(
+                       C.ROLE_ADMIN, action="password_reset", resource_type="account"))):
+    target = db.query(User).filter(User.id == user_id).first()
+    if not target:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Compte introuvable")
+    nouveau = generate_password()
+    target.hashed_password = hash_password(nouveau)
+    db.commit()
+    log_event(db, request=request, user=user, action="password_reset",
+              result=C.RESULT_SUCCESS, resource_type="account", resource_id=target.id)
+    return PasswordResetOut(user_id=target.id, username=target.username,
+                            nouveau_mot_de_passe=nouveau)
+
+
+@router.post("/users/{user_id}/unlock", response_model=UserOut)
+def unlock_user(user_id: int, request: Request, db: Session = Depends(get_db),
+                user: User = Depends(require_role(
+                    C.ROLE_ADMIN, action="account_unlock", resource_type="account"))):
+    target = db.query(User).filter(User.id == user_id).first()
+    if not target:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Compte introuvable")
+    target.locked = 0
+    target.failed_attempts = 0
+    db.commit()
+    log_event(db, request=request, user=user, action="account_unlock",
+              result=C.RESULT_SUCCESS, resource_type="account", resource_id=target.id)
     return target
