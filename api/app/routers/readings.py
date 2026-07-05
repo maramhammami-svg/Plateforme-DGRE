@@ -63,6 +63,8 @@ def export_readings(request: Request, station_id: int | None = None,
 
 @router.get("", response_model=list[ReadingOut])
 def list_readings(request: Request, station_id: int | None = None,
+                  date_from: str | None = None, date_to: str | None = None,
+                  status: str | None = None, quality_flag: str | None = None,
                   db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     ids = scoped_station_ids(db, user)
     q = db.query(Reading)
@@ -70,6 +72,14 @@ def list_readings(request: Request, station_id: int | None = None,
         q = q.filter(Reading.station_id.in_(ids))
     if station_id is not None:
         q = q.filter(Reading.station_id == station_id)
+    if date_from is not None:
+        q = q.filter(Reading.date >= date_from)
+    if date_to is not None:
+        q = q.filter(Reading.date <= date_to)
+    if status is not None:
+        q = q.filter(Reading.status == status)
+    if quality_flag is not None:
+        q = q.filter(Reading.quality_flag == quality_flag)
     rows = q.order_by(Reading.id.desc()).all()
     log_event(db, request=request, user=user, action="list_readings",
               resource_type="reading", volume=len(rows))

@@ -265,6 +265,35 @@ class ConsolidationIn(BaseModel):
     pourcentage: Optional[float] = None
 
 
+class StationCompleteness(BaseModel):
+    station_id: int
+    code: str
+    name: str
+    completude_mensuelle: Optional[float] = None
+    completude_journaliere: float
+
+
+class DashboardSummary(BaseModel):
+    pending_count: int
+    quality_anomalies: int
+    stations_active: int
+    stations_inactive: int
+    completeness: list[StationCompleteness]
+
+
+class StationMarker(BaseModel):
+    id: int
+    code: str
+    name: str
+    latitude: float
+    longitude: float
+    status: str
+    quality: str
+
+    class Config:
+        from_attributes = True
+
+
 class DocumentIn(BaseModel):
     nom: str
     taille_ko: int = 0

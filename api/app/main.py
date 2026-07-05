@@ -2,7 +2,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import Base, engine
 from .seed import seed
-from .routers import auth, stations, raw_readings, readings, events, admin, consolidations, documents
+from .routers import (auth, stations, raw_readings, readings, events, admin,
+                      consolidations, documents, dashboard)
 
 app = FastAPI(
     title="Plateforme DGRE - Banc d'essai pluviometrie / limnimetrie",
@@ -34,3 +35,4 @@ app.include_router(events.router)
 app.include_router(admin.router)
 app.include_router(consolidations.router)
 app.include_router(documents.router)
+app.include_router(dashboard.router)
