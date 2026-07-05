@@ -67,3 +67,10 @@ def scoped_station_ids(db: Session, user: User) -> list[int] | None:
     if user.role == C.ROLE_OBSERVATEUR:
         q = q.filter(Station.type == C.STATION_TYPE_CONV)
     return [row[0] for row in q.all()]
+
+
+def scoped_unite_ids(db: Session, user: User) -> set[int] | None:
+    """unite_id visibles par user. None = aucune restriction (voit tout)."""
+    if user.role in _ROLES_GLOBAUX:
+        return None
+    return _descendant_unite_ids(db, user.unite_id)
