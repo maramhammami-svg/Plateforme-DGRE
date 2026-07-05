@@ -9,6 +9,7 @@ from ..events import log_event
 from ..deps import get_current_user, scoped_station_ids
 from ..security import verify_password
 from .. import constants as C
+from ..quality import quality_flag
 from ..schemas import RawReadingIn, RawReadingOut, ImportResult
 
 router = APIRouter(prefix="/raw-readings", tags=["raw-readings"])
@@ -45,11 +46,13 @@ def _upsert_daily_reading(db: Session, station: Station, date_str: str, actor_id
             parameter=station.parameter,
             valeur_recalculee=agg, valeur_validee=None,
             status=C.STATUS_PENDING, source=C.SOURCE_AUTO,
+            quality_flag=quality_flag(agg, station.parameter),
             created_by=actor_id,
         )
         db.add(r)
     elif r.status != C.STATUS_VALIDATED:
         r.valeur_recalculee = agg
+        r.quality_flag = quality_flag(agg, station.parameter)
     db.commit()
 
 

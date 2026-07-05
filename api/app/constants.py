@@ -56,5 +56,9 @@ RESULT_DENIED = "denied"
 PLAUSIBLE_MAX_MM = 350.0   # > rejet (saisie manuelle)
 SUSPECT_MAX_MM = 200.0     # > signalement (mais accepte)
 
+# Seuils qualite limnimetrie (cm) — PLACEHOLDERS, A CALIBRER avec Amie / donnees reelles
+SUSPECT_MAX_CM = 500.0     # > signalement (mais accepte)
+PLAUSIBLE_MAX_CM = 1000.0  # > rejet / aberrant
+
 # Securite comptes
 MAX_FAILED_ATTEMPTS = 3

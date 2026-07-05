@@ -8,6 +8,7 @@ from ..models import Reading, ReadingVersion, Station, User
 from ..events import log_event
 from ..deps import get_current_user, require_role, scoped_station_ids
 from .. import constants as C
+from ..quality import quality_flag
 from ..schemas import (ReadingIn, ReadingUpdate, ReadingOut, ReadingVersionOut,
                        ValidateIn)
 
@@ -19,16 +20,6 @@ def _station_or_404(db, station_id):
     if not st:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Station introuvable")
     return st
-
-
-def _quality_flag(value: float | None) -> str:
-    if value is None:
-        return C.FLAG_MANQUANT
-    if value > C.PLAUSIBLE_MAX_MM:
-        return C.FLAG_ABERRANT
-    if value > C.SUSPECT_MAX_MM:
-        return C.FLAG_SUSPECT
-    return C.FLAG_OK
 
 
 # ---------- export CSV ----------
@@ -101,7 +92,7 @@ def create_reading(payload: ReadingIn, request: Request, db: Session = Depends(g
     if st.type != C.STATION_TYPE_CONV:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY,
                             "La saisie manuelle est reservee aux stations conventionnelles")
-    if payload.valeur < 0 or payload.valeur > C.PLAUSIBLE_MAX_MM:
+    if quality_flag(payload.valeur, st.parameter) == C.FLAG_ABERRANT:
         log_event(db, request=request, user=user, action="create_reading",
                   result=C.RESULT_FAILURE, resource_type="reading",
                   detail={"reason": "valeur aberrante", "valeur": payload.valeur})
@@ -109,7 +100,7 @@ def create_reading(payload: ReadingIn, request: Request, db: Session = Depends(g
     if db.query(Reading).filter(Reading.station_id == st.id,
                                 Reading.date == payload.date).first():
         raise HTTPException(status.HTTP_409_CONFLICT, "Un releve existe deja pour cette date")
-    flag = _quality_flag(payload.valeur)
+    flag = quality_flag(payload.valeur, st.parameter)
     r = Reading(station_id=st.id, date=payload.date,
                 parameter=st.parameter,
                 valeur_recalculee=payload.valeur, valeur_validee=None,
@@ -159,7 +150,7 @@ def correct_reading(reading_id: int, payload: ReadingUpdate, request: Request,
     ))
     old_val, old_status = r.valeur_recalculee, r.status
     r.valeur_recalculee = new_val
-    r.quality_flag = _quality_flag(new_val)
+    r.quality_flag = quality_flag(new_val, r.parameter)
     if not was_validated:
         # repasse en attente si pas encore valide
         r.status = C.STATUS_PENDING
