@@ -2,6 +2,7 @@ import csv
 import io
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Request, UploadFile, File, Header
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import RawReading, Reading, Station, User
@@ -10,27 +11,44 @@ from ..deps import get_current_user, scoped_station_ids
 from ..security import verify_password
 from .. import constants as C
 from ..quality import quality_flag
-from ..schemas import RawReadingIn, RawReadingOut, ImportResult
+from ..schemas import RawReadingIn, RawReadingOut, ImportResult, RawBatchIn, RawBatchResult
 
 router = APIRouter(prefix="/raw-readings", tags=["raw-readings"])
+
+
+def _auth_station(db: Session, station_id: int, x_station_key: str | None,
+                   request: Request) -> Station:
+    """Verifie qu'une station automatique existe et que la cle presentee est valide.
+    Journalise un refus (denied) en cas d'echec avant de lever l'exception."""
+    st = db.query(Station).filter(Station.id == station_id).first()
+    if not st:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Station introuvable")
+    if (not x_station_key or not st.hashed_station_key
+            or not verify_password(x_station_key, st.hashed_station_key)):
+        log_event(db, request=request, user=None, action="ingest_raw",
+                  result=C.RESULT_DENIED, resource_type="station", resource_id=st.id,
+                  detail={"reason": "cle station invalide"})
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Cle station invalide")
+    if st.type != C.STATION_TYPE_AUTO:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            "Releves bruts reserves aux stations automatiques")
+    return st
 
 
 def _aggregate_day(db: Session, station: Station, date_str: str) -> float | None:
     """Calcule valeur_recalculee pour un jour donne selon le parametre de la station."""
     day_start = datetime.fromisoformat(f"{date_str}T00:00:00")
     day_end = datetime.fromisoformat(f"{date_str}T23:59:59")
-    rows = (db.query(RawReading)
-            .filter(RawReading.station_id == station.id,
-                    RawReading.timestamp >= day_start,
-                    RawReading.timestamp <= day_end,
-                    RawReading.is_missing == False)  # noqa: E712
-            .all())
-    valeurs = [r.valeur for r in rows if r.valeur is not None]
-    if not valeurs:
-        return None
+    base = db.query(RawReading).filter(
+        RawReading.station_id == station.id,
+        RawReading.timestamp >= day_start,
+        RawReading.timestamp <= day_end,
+        RawReading.is_missing == False,          # noqa: E712
+        RawReading.valeur.isnot(None),
+    )
     if station.parameter == C.PARAM_PLUVIO:
-        return sum(valeurs)
-    return sum(valeurs) / len(valeurs)  # limnimetrie -> moyenne
+        return base.with_entities(func.sum(RawReading.valeur)).scalar()
+    return base.with_entities(func.avg(RawReading.valeur)).scalar()  # limni -> moyenne
 
 
 def _upsert_daily_reading(db: Session, station: Station, date_str: str, actor_id: int | None):
@@ -60,18 +78,7 @@ def _upsert_daily_reading(db: Session, station: Station, date_str: str, actor_id
 def create_raw_reading(payload: RawReadingIn, request: Request,
                        db: Session = Depends(get_db),
                        x_station_key: str | None = Header(default=None, alias="X-Station-Key")):
-    st = db.query(Station).filter(Station.id == payload.station_id).first()
-    if not st:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Station introuvable")
-    if (not x_station_key or not st.hashed_station_key
-            or not verify_password(x_station_key, st.hashed_station_key)):
-        log_event(db, request=request, user=None, action="ingest_raw",
-                  result=C.RESULT_DENIED, resource_type="station", resource_id=st.id,
-                  detail={"reason": "cle station invalide"})
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Cle station invalide")
-    if st.type != C.STATION_TYPE_AUTO:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY,
-                            "Releves bruts reserves aux stations automatiques")
+    st = _auth_station(db, payload.station_id, x_station_key, request)
     ts = payload.timestamp or datetime.now(timezone.utc)
     rr = RawReading(station_id=st.id, timestamp=ts, valeur=payload.valeur,
                     is_missing=payload.is_missing, source=payload.source)
@@ -80,6 +87,31 @@ def create_raw_reading(payload: RawReadingIn, request: Request,
     log_event(db, request=request, user=None, action="ingest_raw",
               resource_type="station", resource_id=st.id, volume=1)
     return rr
+
+
+@router.post("/batch", response_model=RawBatchResult, status_code=201)
+def create_raw_readings_batch(payload: RawBatchIn, request: Request,
+                              db: Session = Depends(get_db),
+                              x_station_key: str | None = Header(default=None, alias="X-Station-Key")):
+    """Ingestion par lot pour une seule station : insere tous les points puis
+    n'agrege qu'une fois par jour distinct touche (au lieu d'une agregation par point)."""
+    st = _auth_station(db, payload.station_id, x_station_key, request)
+    affected_dates: set[str] = set()
+
+    for point in payload.points:
+        ts = point.timestamp or datetime.now(timezone.utc)
+        db.add(RawReading(station_id=st.id, timestamp=ts, valeur=point.valeur,
+                          is_missing=point.is_missing, source=payload.source))
+        affected_dates.add(ts.strftime("%Y-%m-%d"))
+
+    db.commit()
+
+    for date_str in affected_dates:
+        _upsert_daily_reading(db, st, date_str, None)
+
+    log_event(db, request=request, user=None, action="ingest_raw",
+              resource_type="station", resource_id=st.id, volume=len(payload.points))
+    return RawBatchResult(inserted=len(payload.points), days_aggregated=len(affected_dates))
 
 
 @router.get("", response_model=list[RawReadingOut])

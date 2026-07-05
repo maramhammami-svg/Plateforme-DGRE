@@ -145,6 +145,23 @@ class RawReadingOut(BaseModel):
         from_attributes = True
 
 
+class RawPoint(BaseModel):
+    timestamp: Optional[datetime] = None
+    valeur: Optional[float] = None
+    is_missing: bool = False
+
+
+class RawBatchIn(BaseModel):
+    station_id: int
+    source: str
+    points: list[RawPoint]
+
+
+class RawBatchResult(BaseModel):
+    inserted: int
+    days_aggregated: int
+
+
 class ReadingIn(BaseModel):
     station_id: int
     date: str
