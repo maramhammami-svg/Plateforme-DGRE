@@ -1,0 +1,19 @@
+:root{
+  --sans:"IBM Plex Sans", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, "Cascadia Code", monospace;
+  --radius:10px;
+}
+:root[data-theme="light"]{
+  --bg:#EEF2F7; --surface:#FFFFFF; --surface-2:#F6F9FC; --panel:#FFFFFF;
+  --ink:#132230; --muted:#5A6B7B; --faint:#8A9AAC; --line:#E0E7EF; --line-2:#D2DBE6;
+  --rain:#1E6FB8; --limni:#0E8C8C; --accent:#1E6FB8; --accent-ink:#fff;
+  --ok:#128A5B; --warn:#B4780C; --bad:#C23A22; --grey:#7C8A99; --info:#2E7CC4;
+  --ok-bg:#E4F3EC; --warn-bg:#FBF1DD; --bad-bg:#FBE7E2; --grey-bg:#EDF1F6; --info-bg:#E6F0FA;
+}
+:root[data-theme="dark"]{
+  --bg:#0C141E; --surface:#121E2B; --surface-2:#16232F; --panel:#101B27;
+  --ink:#E7EEF5; --muted:#93A3B5; --faint:#657586; --line:#22303F; --line-2:#2C3C4D;
+  --rain:#57A6E6; --limni:#3AC7B8; --accent:#3E86C9; --accent-ink:#fff;
+  --ok:#3FBE86; --warn:#E0A63C; --bad:#E8664D; --grey:#8494A5; --info:#5FA6E0;
+  --ok-bg:#123227; --warn-bg:#332811; --bad-bg:#361c17; --grey-bg:#1a2632; --info-bg:#122636;
+}
