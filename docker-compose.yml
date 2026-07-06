@@ -3,7 +3,7 @@ services:
     image: postgres:16
     environment:
       POSTGRES_USER: dgre
-      POSTGRES_PASSWORD: dgre_pass
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: dgre_poc
     volumes:
       - db_data:/var/lib/postgresql/data
@@ -16,9 +16,9 @@ services:
   api:
     build: ./api
     environment:
-      DATABASE_URL: postgresql+psycopg2://dgre:dgre_pass@db:5432/dgre_poc
-      JWT_SECRET: change-me-in-prod
-      JWT_EXPIRE_MINUTES: "120"
+      DATABASE_URL: postgresql+psycopg2://dgre:${POSTGRES_PASSWORD}@db:5432/dgre_poc
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRE_MINUTES: "${JWT_EXPIRE_MINUTES}"
     depends_on:
       db:
         condition: service_healthy
