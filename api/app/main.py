@@ -8,7 +8,7 @@ from .config import settings
 from .database import Base, engine
 from .seed import seed
 from .routers import (auth, stations, raw_readings, readings, events, admin,
-                      consolidations, documents, dashboard)
+                      consolidations, documents, dashboard, unites)
 
 # Docs desactivees par defaut (information disclosure : surface API complete
 # visible sans authentification). Activer via ENABLE_DOCS=true en dev local.
@@ -78,3 +78,4 @@ app.include_router(admin.router)
 app.include_router(consolidations.router)
 app.include_router(documents.router)
 app.include_router(dashboard.router)
+app.include_router(unites.router)

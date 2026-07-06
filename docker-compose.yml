@@ -20,6 +20,9 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRE_MINUTES: "${JWT_EXPIRE_MINUTES}"
       ENABLE_DOCS: "${ENABLE_DOCS:-false}"
+      DOCUMENTS_DIR: /data/documents
+    volumes:
+      - documents_data:/data/documents
     depends_on:
       db:
         condition: service_healthy
@@ -38,3 +41,4 @@ services:
 
 volumes:
   db_data:
+  documents_data:

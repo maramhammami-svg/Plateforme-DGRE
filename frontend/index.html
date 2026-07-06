@@ -250,20 +250,25 @@
   </section>
 
   <section id="tab-documents" class="hidden">
-    <div class="lead"><h1>Documents</h1><span>métadonnées · accès hors unité refusé et journalisé</span></div>
+    <div class="lead"><h1>Documents</h1><span>partage de fichiers · accès hors périmètre refusé et journalisé</span></div>
     <div class="card">
       <header><h2>Déposer un document</h2></header>
-      <div class="bd"><div class="row">
-        <label class="field">Nom <input id="docNom" placeholder="rapport_mensuel.pdf"></label>
-        <label class="field">Taille (Ko) <input id="docSize" type="number" placeholder="0"></label>
-        <button class="btn primary" id="docAddBtn">Déposer</button>
-      </div></div>
+      <div class="bd">
+        <div class="row">
+          <label class="field">Fichier <input id="docFile" type="file"></label>
+        </div>
+        <div class="row" style="margin-top:14px">
+          <label class="field">Partager avec — unités <select id="docShareUnites" multiple size="5" style="min-width:220px"></select></label>
+          <label class="field">Partager avec — personnes <select id="docShareUsers" multiple size="5" style="min-width:220px"></select></label>
+          <button class="btn primary" id="docAddBtn">Déposer</button>
+        </div>
+      </div>
     </div>
     <div class="card">
-      <header><h2>Documents de votre unité</h2></header>
+      <header><h2>Documents accessibles</h2></header>
       <div class="scroll-x"><table>
-        <thead><tr><th>#</th><th>Nom</th><th>Propriétaire</th><th>Unité</th><th>Taille (Ko)</th><th>Créé le</th><th></th></tr></thead>
-        <tbody id="docsBody"><tr><td colspan="7" class="empty">Chargement…</td></tr></tbody>
+        <thead><tr><th>#</th><th>Nom</th><th>Propriétaire</th><th>Unité</th><th>Taille (Ko)</th><th>Partagé avec</th><th>Créé le</th><th></th></tr></thead>
+        <tbody id="docsBody"><tr><td colspan="8" class="empty">Chargement…</td></tr></tbody>
       </table></div>
     </div>
   </section>

@@ -191,12 +191,16 @@ class Consolidation(Base):
 
 
 class Document(Base):
-    """Metadonnees d'un document interne (aucun binaire stocke).
-    L'unite du document = celle de son owner. Upload/download journalises :
-    un acces ou unite_acteur != unite_ressource est un signal hors-perimetre."""
+    """Un document interne avec son fichier reellement stocke sur disque
+    (stored_filename = nom UUID, jamais derive du nom fourni par l'utilisateur).
+    L'unite par defaut du document = celle de son owner. Visible au-dela de cette
+    unite via des octrois explicites (DocumentShare). Upload/download journalises :
+    un acces refuse est un signal hors-perimetre."""
     __tablename__ = "documents"
     id = Column(Integer, primary_key=True)
     nom = Column(String, nullable=False)
+    stored_filename = Column(String, nullable=False)
+    mime_type = Column(String, nullable=True)
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     unite_id = Column(Integer, ForeignKey("unites.id"), nullable=True, index=True)
     taille_ko = Column(Integer, nullable=False, default=0)
@@ -204,3 +208,20 @@ class Document(Base):
 
     owner = relationship("User", foreign_keys=[owner_id])
     unite = relationship("UniteOrganisationnelle", foreign_keys=[unite_id])
+    shares = relationship("DocumentShare", back_populates="document", cascade="all, delete-orphan")
+
+
+class DocumentShare(Base):
+    """Octroi explicite d'acces a un document, en plus de la visibilite par unite
+    du proprietaire. Exactement un des deux champs (unite_id, user_id) est rempli
+    (valide en code, cf. routers/documents.py)."""
+    __tablename__ = "document_shares"
+    id = Column(Integer, primary_key=True)
+    document_id = Column(Integer, ForeignKey("documents.id"), nullable=False, index=True)
+    unite_id = Column(Integer, ForeignKey("unites.id"), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    document = relationship("Document", back_populates="shares")
+    unite = relationship("UniteOrganisationnelle", foreign_keys=[unite_id])
+    user = relationship("User", foreign_keys=[user_id])

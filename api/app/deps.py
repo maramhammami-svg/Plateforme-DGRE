@@ -56,7 +56,7 @@ def require_role(*roles: str, action: str, resource_type: str | None = None):
     return dep
 
 
-def _descendant_unite_ids(db: Session, root_id: int | None) -> set[int]:
+def descendant_unite_ids(db: Session, root_id: int | None) -> set[int]:
     """root_id + tous ses descendants dans l'arbre des unites."""
     if root_id is None:
         return set()
@@ -74,11 +74,27 @@ def _descendant_unite_ids(db: Session, root_id: int | None) -> set[int]:
     return ids
 
 
+def ancestor_unite_ids(db: Session, unite_id: int | None) -> set[int]:
+    """unite_id + tous ses ancetres dans l'arbre des unites (chemin vers la racine).
+    Sert a faire remonter un partage de document accorde a une unite vers toutes
+    ses unites descendantes : si X est ancetre de Y, un partage vers X doit rester
+    visible pour un membre de Y."""
+    if unite_id is None:
+        return set()
+    parent_of = {u.id: u.parent_id for u in db.query(UniteOrganisationnelle).all()}
+    ids: set[int] = set()
+    cur = unite_id
+    while cur is not None and cur not in ids:
+        ids.add(cur)
+        cur = parent_of.get(cur)
+    return ids
+
+
 def scoped_station_ids(db: Session, user: User) -> list[int] | None:
     """station_id visibles par user. None = aucune restriction (voit tout)."""
     if user.role in _ROLES_GLOBAUX:
         return None
-    unite_ids = _descendant_unite_ids(db, user.unite_id)
+    unite_ids = descendant_unite_ids(db, user.unite_id)
     q = db.query(Station.id).filter(Station.unite_id.in_(unite_ids))
     if user.role == C.ROLE_OBSERVATEUR:
         q = q.filter(Station.type == C.STATION_TYPE_CONV)
@@ -89,4 +105,4 @@ def scoped_unite_ids(db: Session, user: User) -> set[int] | None:
     """unite_id visibles par user. None = aucune restriction (voit tout)."""
     if user.role in _ROLES_GLOBAUX:
         return None
-    return _descendant_unite_ids(db, user.unite_id)
+    return descendant_unite_ids(db, user.unite_id)

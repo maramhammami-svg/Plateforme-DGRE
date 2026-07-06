@@ -369,18 +369,39 @@ class StationMarker(BaseModel):
         from_attributes = True
 
 
-class DocumentIn(BaseModel):
-    nom: str = Field(min_length=1, max_length=200)
-    taille_ko: int = Field(default=0, ge=0, le=1_000_000)
+class SharedTargetOut(BaseModel):
+    type: Literal["unite", "user"]
+    id: int
+    nom: str
 
 
 class DocumentOut(BaseModel):
     id: int
     nom: str
+    mime_type: Optional[str] = None
     owner_id: int
     unite_id: Optional[int] = None
     taille_ko: int
     created_at: Optional[datetime] = None
+    partages: list[SharedTargetOut] = []
+
+    class Config:
+        from_attributes = True
+
+
+class UniteLiteOut(BaseModel):
+    id: int
+    nom: str
+
+    class Config:
+        from_attributes = True
+
+
+class UserLiteOut(BaseModel):
+    id: int
+    username: str
+    full_name: Optional[str] = None
+    unite_id: Optional[int] = None
 
     class Config:
         from_attributes = True

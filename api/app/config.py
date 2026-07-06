@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 120
     enable_docs: bool = False
+    documents_dir: str = "/data/documents"
 
     class Config:
         env_file = ".env"

@@ -6,7 +6,7 @@ from ..security import hash_password, generate_password
 from ..events import log_event
 from ..deps import get_current_user, require_role
 from .. import constants as C
-from ..schemas import UserIn, UserUpdate, UserOut, PasswordResetOut
+from ..schemas import UserIn, UserUpdate, UserOut, PasswordResetOut, UserLiteOut
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -24,6 +24,15 @@ def list_users(request: Request, db: Session = Depends(get_db),
                user: User = Depends(get_current_user)):
     _require_admin(db, request, user, "list_users")
     return db.query(User).order_by(User.id).all()
+
+
+@router.get("/users/directory", response_model=list[UserLiteOut])
+def users_directory(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    """Annuaire des comptes actifs (id/username/nom/unite) : utilise pour choisir
+    des destinataires de partage de document. Ouvert a tout utilisateur authentifie,
+    contrairement a /admin/users (reserve admin) : rien ici n'est sensible."""
+    return (db.query(User).filter(User.is_active == 1)
+            .order_by(User.username).all())
 
 
 @router.post("/users", response_model=UserOut, status_code=201)
