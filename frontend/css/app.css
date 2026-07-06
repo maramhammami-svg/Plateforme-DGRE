@@ -85,9 +85,10 @@ input[type=file]{padding:7px}
 
 .kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:18px}
 @media (max-width:820px){ .kpis{grid-template-columns:repeat(2,1fr)} }
-.kpi{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:15px 17px}
+.kpi{background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--line-2); border-radius:12px; padding:15px 17px}
 .kpi .lab{font-size:12px; color:var(--muted)}
 .kpi .n{font-family:var(--mono); font-size:29px; font-weight:600; margin-top:8px; line-height:1}
+.kpi.bad{border-left-color:var(--bad)} .kpi.warn{border-left-color:var(--warn)} .kpi.ok{border-left-color:var(--ok)}
 .kpi.bad .n{color:var(--bad)} .kpi.warn .n{color:var(--warn)} .kpi.ok .n{color:var(--ok)}
 
 .cols{display:grid; grid-template-columns:1.5fr 1fr; gap:16px}
@@ -122,14 +123,16 @@ td.num{font-family:var(--mono)}
 
 .feed{max-height:360px; overflow:auto}
 .ev{display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:start;
-  padding:10px 16px; border-bottom:1px solid var(--line); font-size:12.5px}
+  padding:10px 16px 10px 14px; border-bottom:1px solid var(--line); border-left:2px solid transparent; font-size:12.5px}
 .ev:last-child{border-bottom:0}
+.ev:hover{background:var(--surface-2)}
 .ev .dot{width:9px;height:9px;border-radius:50%;margin-top:3px}
 .ev .act{font-family:var(--mono); font-weight:500}
 .ev .meta{font-family:var(--mono); font-size:11px; color:var(--faint); margin-top:2px}
 .ev .rt{font-family:var(--mono); font-size:10.5px; color:var(--muted); text-align:right; white-space:nowrap}
-.ev.denied{background:var(--bad-bg)} .ev.denied .act{color:var(--bad)}
-.ev.failure{background:var(--bad-bg)} .ev.failure .act{color:var(--bad)}
+.ev.denied{background:var(--bad-bg); border-left-color:var(--bad)} .ev.denied .act{color:var(--bad)}
+.ev.failure{background:var(--bad-bg); border-left-color:var(--bad)} .ev.failure .act{color:var(--bad)}
+.ev.denied:hover, .ev.failure:hover{background:var(--bad-bg)}
 
 .journal{font-family:var(--mono); font-size:12.5px}
 .journal th{font-family:var(--sans)}
