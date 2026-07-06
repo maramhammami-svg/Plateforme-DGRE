@@ -15,7 +15,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 @router.post("/login", response_model=Token)
 def login(request: Request, form: OAuth2PasswordRequestForm = Depends(),
           db: Session = Depends(get_db)):
-    if len(form.username) > 50 or len(form.password) > 128:
+    if len(form.username) > 50 or len(form.password) > 72:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Identifiants invalides")
     user = db.query(User).filter(User.username == form.username).first()
     if not user:

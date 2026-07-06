@@ -5,11 +5,16 @@ from . import constants as C
 
 
 def client_ip(request: Request | None) -> str | None:
+    """IP loggee dans le contrat d'observabilite (signal anti-exfiltration).
+    X-Forwarded-For est usurpable par le client (nginx l'ajoute a la suite d'une
+    valeur deja presente au lieu de l'ecraser) : on ne s'y fie pas. X-Real-IP est
+    ecrase inconditionnellement par la passerelle nginx (`proxy_set_header X-Real-IP
+    $remote_addr`), donc non usurpable tant que l'API n'est joignable que via elle."""
     if request is None:
         return None
-    fwd = request.headers.get("x-forwarded-for")
-    if fwd:
-        return fwd.split(",")[0].strip()
+    real_ip = request.headers.get("x-real-ip")
+    if real_ip:
+        return real_ip.strip()
     return request.client.host if request.client else None
 
 

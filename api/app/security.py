@@ -1,18 +1,21 @@
 import secrets
 from datetime import datetime, timedelta, timezone
-from jose import jwt, JWTError
-from passlib.context import CryptContext
-from .config import settings
 
-pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
+import bcrypt
+import jwt
+
+from .config import settings
 
 
 def hash_password(p: str) -> str:
-    return pwd.hash(p)
+    return bcrypt.hashpw(p.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(p: str, hashed: str) -> bool:
-    return pwd.verify(p, hashed)
+    try:
+        return bcrypt.checkpw(p.encode("utf-8"), hashed.encode("utf-8"))
+    except ValueError:
+        return False
 
 
 def generate_station_key() -> str:
@@ -33,5 +36,5 @@ def create_access_token(sub: str) -> str:
 def decode_token(token: str):
     try:
         return jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
-    except JWTError:
+    except jwt.PyJWTError:
         return None

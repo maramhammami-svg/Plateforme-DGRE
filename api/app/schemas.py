@@ -26,7 +26,7 @@ class UserOut(BaseModel):
 
 class UserIn(BaseModel):
     username: str = Field(min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_.\-]+$")
-    password: str = Field(min_length=8, max_length=128)
+    password: str = Field(min_length=8, max_length=72)  # limite dure bcrypt (72 octets)
     full_name: Optional[str] = Field(default=None, max_length=120)
     role: str
     unite_id: Optional[int] = None
@@ -41,8 +41,8 @@ class UserUpdate(BaseModel):
 
 
 class PasswordChange(BaseModel):
-    ancien: str = Field(min_length=1, max_length=128)
-    nouveau: str = Field(min_length=8, max_length=128)
+    ancien: str = Field(min_length=1, max_length=72)
+    nouveau: str = Field(min_length=8, max_length=72)  # limite dure bcrypt (72 octets)
 
 
 class PasswordResetOut(BaseModel):

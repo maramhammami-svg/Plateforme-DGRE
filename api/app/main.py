@@ -3,22 +3,33 @@ import math
 from fastapi import FastAPI, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from .config import settings
 from .database import Base, engine
 from .seed import seed
 from .routers import (auth, stations, raw_readings, readings, events, admin,
                       consolidations, documents, dashboard)
 
+# Docs desactivees par defaut (information disclosure : surface API complete
+# visible sans authentification). Activer via ENABLE_DOCS=true en dev local.
+_docs_kwargs = (
+    {"docs_url": "/docs", "redoc_url": "/redoc", "openapi_url": "/openapi.json"}
+    if settings.enable_docs
+    else {"docs_url": None, "redoc_url": None, "openapi_url": None}
+)
+
 app = FastAPI(
     title="Plateforme DGRE - Banc d'essai pluviometrie / limnimetrie",
     description="PoC instrumente : chaque action emet un evenement normalise (contrat d'observabilite).",
     version="0.2.0",
+    **_docs_kwargs,
 )
 
-app.add_middleware(
-    CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"],
-)
+# Pas de CORSMiddleware : le frontend (frontend/js/api.js) n'appelle l'API qu'en
+# URL relative, toujours same-origin derriere la passerelle nginx. Un middleware
+# CORS ouvert (allow_origins=["*"]) n'apportait donc rien et n'aurait fait
+# qu'aggraver l'impact d'une XSS future (token localStorage exfiltrable vers
+# n'importe quelle origine).
 
 
 def _json_safe(value):
