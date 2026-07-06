@@ -1,5 +1,6 @@
 import csv
 import io
+import math
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Request, UploadFile, File, Header
 from sqlalchemy import func
@@ -7,7 +8,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import RawReading, Reading, Station, User
 from ..events import log_event
-from ..deps import get_current_user, scoped_station_ids
+from ..deps import get_current_user, scoped_station_ids, parse_iso_date_qs
 from ..security import verify_password
 from .. import constants as C
 from ..quality import quality_flag
@@ -119,6 +120,7 @@ def list_raw_readings(request: Request, station_id: int | None = None,
                       date: str | None = None,
                       db: Session = Depends(get_db),
                       user: User = Depends(get_current_user)):
+    date = parse_iso_date_qs(date, "date")
     ids = scoped_station_ids(db, user)
     q = db.query(RawReading)
     if ids is not None:
@@ -143,11 +145,21 @@ async def import_raw_readings(request: Request, file: UploadFile = File(...),
     """Import CSV brut : colonnes 'station_name,timestamp,valeur'.
     Une valeur commencant par '[' ou vide = donnee manquante (is_missing=True, valeur=null)."""
     raw = await file.read()
-    reader = csv.DictReader(io.StringIO(raw.decode("utf-8-sig")))
+    if len(raw) > C.MAX_IMPORT_CSV_BYTES:
+        raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                            f"Fichier trop volumineux (max {C.MAX_IMPORT_CSV_BYTES // (1024*1024)} Mo)")
+    try:
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Encodage de fichier invalide (attendu UTF-8)")
+    reader = csv.DictReader(io.StringIO(text))
     inserted, rejected, details = 0, 0, []
     affected: dict[tuple, int] = {}   # (station_id, date_str) -> actor_id
 
-    for row in reader:
+    for row_num, row in enumerate(reader, start=1):
+        if row_num > C.MAX_IMPORT_CSV_ROWS:
+            details.append({"raison": f"fichier tronque a {C.MAX_IMPORT_CSV_ROWS} lignes"})
+            break
         name = (row.get("station_name") or "").strip()
         ts_str = (row.get("timestamp") or "").strip()
         val_raw = (row.get("valeur") or "").strip()
@@ -174,6 +186,10 @@ async def import_raw_readings(request: Request, file: UploadFile = File(...),
             try:
                 valeur = float(val_raw)
             except ValueError:
+                rejected += 1
+                details.append({"station": name, "raison": "valeur illisible"})
+                continue
+            if not math.isfinite(valeur):
                 rejected += 1
                 details.append({"station": name, "raison": "valeur illisible"})
                 continue

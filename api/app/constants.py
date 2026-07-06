@@ -29,10 +29,16 @@ UNITE_SOUS_DEPT = "sous_departement"
 UNITE_SERVICE = "service"
 UNITE_TYPES = {UNITE_DIRECTION, UNITE_DEPARTEMENT, UNITE_SOUS_DEPT, UNITE_SERVICE}
 
+# Statut d'une station
+STATION_STATUS_ACTIVE = "active"
+STATION_STATUS_INACTIVE = "inactive"
+STATION_STATUSES = {STATION_STATUS_ACTIVE, STATION_STATUS_INACTIVE}
+
 # Statut d'un releve
 STATUS_PENDING = "pending"
 STATUS_VALIDATED = "validated"
 STATUS_REJECTED = "rejected"
+STATUSES = {STATUS_PENDING, STATUS_VALIDATED, STATUS_REJECTED}
 
 # Source d'un releve
 SOURCE_AUTO = "ingere_auto"
@@ -62,3 +68,8 @@ PLAUSIBLE_MAX_CM = 1000.0  # > rejet / aberrant
 
 # Securite comptes
 MAX_FAILED_ATTEMPTS = 3
+
+# Bornes anti-DoS / entrees malformees
+MAX_IMPORT_CSV_BYTES = 5 * 1024 * 1024   # 5 Mo
+MAX_IMPORT_CSV_ROWS = 50_000
+MAX_BATCH_POINTS = 5_000

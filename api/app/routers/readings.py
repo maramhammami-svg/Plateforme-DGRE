@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Reading, ReadingVersion, Station, User
 from ..events import log_event
-from ..deps import get_current_user, require_role, scoped_station_ids
+from ..deps import get_current_user, require_role, scoped_station_ids, parse_iso_date_qs
 from .. import constants as C
 from ..quality import quality_flag
 from ..schemas import (ReadingIn, ReadingUpdate, ReadingOut, ReadingVersionOut,
@@ -57,6 +57,12 @@ def list_readings(request: Request, station_id: int | None = None,
                   date_from: str | None = None, date_to: str | None = None,
                   status: str | None = None, quality_flag: str | None = None,
                   db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    date_from = parse_iso_date_qs(date_from, "date_from")
+    date_to = parse_iso_date_qs(date_to, "date_to")
+    if status is not None and status not in C.STATUSES:
+        raise HTTPException(status_code=422, detail="status invalide")
+    if quality_flag is not None and quality_flag not in C.QUALITY_FLAGS:
+        raise HTTPException(status_code=422, detail="quality_flag invalide")
     ids = scoped_station_ids(db, user)
     q = db.query(Reading)
     if ids is not None:

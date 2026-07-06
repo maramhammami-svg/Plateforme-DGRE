@@ -1,3 +1,5 @@
+from datetime import date as _date
+
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
@@ -8,6 +10,20 @@ from .events import log_event
 from . import constants as C
 
 oauth2 = OAuth2PasswordBearer(tokenUrl="auth/login")
+
+
+def parse_iso_date_qs(value: str | None, field_name: str) -> str | None:
+    """Valide un parametre de requete date (AAAA-MM-JJ). None passe tel quel.
+    Rejette proprement (422) plutot que de laisser une ValueError faire planter
+    l'endpoint (500) sur une entree malformee."""
+    if value is None:
+        return None
+    try:
+        _date.fromisoformat(value)
+    except (TypeError, ValueError):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            f"{field_name} invalide (attendu AAAA-MM-JJ)")
+    return value
 
 
 def get_current_user(token: str = Depends(oauth2), db: Session = Depends(get_db)) -> User:

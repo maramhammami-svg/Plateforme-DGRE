@@ -1,6 +1,8 @@
-from pydantic import BaseModel, field_validator
-from typing import Optional, Any
-from datetime import datetime
+from pydantic import BaseModel, Field, field_validator
+from typing import Optional, Any, Literal
+from datetime import date, datetime
+
+from . import constants as C
 
 
 class Token(BaseModel):
@@ -23,9 +25,9 @@ class UserOut(BaseModel):
 
 
 class UserIn(BaseModel):
-    username: str
-    password: str
-    full_name: Optional[str] = None
+    username: str = Field(min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_.\-]+$")
+    password: str = Field(min_length=8, max_length=128)
+    full_name: Optional[str] = Field(default=None, max_length=120)
     role: str
     unite_id: Optional[int] = None
     superviseur_id: Optional[int] = None
@@ -39,8 +41,8 @@ class UserUpdate(BaseModel):
 
 
 class PasswordChange(BaseModel):
-    ancien: str
-    nouveau: str
+    ancien: str = Field(min_length=1, max_length=128)
+    nouveau: str = Field(min_length=8, max_length=128)
 
 
 class PasswordResetOut(BaseModel):
@@ -60,16 +62,16 @@ class UniteOut(BaseModel):
 
 
 class StationIn(BaseModel):
-    code: str
-    name: str
+    code: str = Field(min_length=1, max_length=30)
+    name: str = Field(min_length=1, max_length=120)
     type: str
     parameter: str
     unit: str
-    sampling_interval_min: Optional[int] = None
+    sampling_interval_min: Optional[int] = Field(default=None, ge=1, le=10_080)
     latitude: float
     longitude: float
-    altitude_m: Optional[float] = None
-    governorate: Optional[str] = None
+    altitude_m: Optional[float] = Field(default=None, ge=-500, le=9000)
+    governorate: Optional[str] = Field(default=None, max_length=60)
     unite_id: Optional[int] = None
 
     @field_validator("latitude")
@@ -88,18 +90,32 @@ class StationIn(BaseModel):
 
 
 class StationUpdate(BaseModel):
-    code: Optional[str] = None
-    name: Optional[str] = None
+    code: Optional[str] = Field(default=None, min_length=1, max_length=30)
+    name: Optional[str] = Field(default=None, min_length=1, max_length=120)
     type: Optional[str] = None
     parameter: Optional[str] = None
     unit: Optional[str] = None
-    sampling_interval_min: Optional[int] = None
+    sampling_interval_min: Optional[int] = Field(default=None, ge=1, le=10_080)
     latitude: Optional[float] = None
     longitude: Optional[float] = None
-    altitude_m: Optional[float] = None
-    governorate: Optional[str] = None
+    altitude_m: Optional[float] = Field(default=None, ge=-500, le=9000)
+    governorate: Optional[str] = Field(default=None, max_length=60)
     status: Optional[str] = None
     unite_id: Optional[int] = None
+
+    @field_validator("latitude")
+    @classmethod
+    def validate_lat(cls, v):
+        if v is not None and not (30 <= v <= 38):
+            raise ValueError("latitude doit etre entre 30 et 38 (Tunisie WGS84)")
+        return v
+
+    @field_validator("longitude")
+    @classmethod
+    def validate_lon(cls, v):
+        if v is not None and not (7 <= v <= 12):
+            raise ValueError("longitude doit etre entre 7 et 12 (Tunisie WGS84)")
+        return v
 
 
 class StationOut(BaseModel):
@@ -125,12 +141,26 @@ class StationCreated(StationOut):
     station_key: str
 
 
+def _reject_non_finite(v):
+    """Refuse NaN/Infinity : accepte comme float par le JSON mais fausserait
+    silencieusement les flags qualite et les agregations (SUM/AVG empoisonnes)."""
+    import math
+    if v is not None and not math.isfinite(v):
+        raise ValueError("valeur doit etre un nombre fini (NaN/Infini refuses)")
+    return v
+
+
 class RawReadingIn(BaseModel):
     station_id: int
     timestamp: Optional[datetime] = None
     valeur: Optional[float] = None
     is_missing: bool = False
-    source: str
+    source: str = Field(min_length=1, max_length=40)
+
+    @field_validator("valeur")
+    @classmethod
+    def validate_valeur(cls, v):
+        return _reject_non_finite(v)
 
 
 class RawReadingOut(BaseModel):
@@ -150,11 +180,16 @@ class RawPoint(BaseModel):
     valeur: Optional[float] = None
     is_missing: bool = False
 
+    @field_validator("valeur")
+    @classmethod
+    def validate_valeur(cls, v):
+        return _reject_non_finite(v)
+
 
 class RawBatchIn(BaseModel):
     station_id: int
-    source: str
-    points: list[RawPoint]
+    source: str = Field(min_length=1, max_length=40)
+    points: list[RawPoint] = Field(min_length=1, max_length=C.MAX_BATCH_POINTS)
 
 
 class RawBatchResult(BaseModel):
@@ -162,15 +197,38 @@ class RawBatchResult(BaseModel):
     days_aggregated: int
 
 
+def _validate_iso_date(v: str) -> str:
+    try:
+        date.fromisoformat(v)
+    except (TypeError, ValueError):
+        raise ValueError("date invalide (attendu AAAA-MM-JJ)")
+    return v
+
+
 class ReadingIn(BaseModel):
     station_id: int
     date: str
     valeur: float
 
+    @field_validator("date")
+    @classmethod
+    def validate_date(cls, v):
+        return _validate_iso_date(v)
+
+    @field_validator("valeur")
+    @classmethod
+    def validate_valeur(cls, v):
+        return _reject_non_finite(v)
+
 
 class ReadingUpdate(BaseModel):
     valeur_recalculee: Optional[float] = None
-    raison: Optional[str] = None
+    raison: Optional[str] = Field(default=None, max_length=500)
+
+    @field_validator("valeur_recalculee")
+    @classmethod
+    def validate_valeur(cls, v):
+        return _reject_non_finite(v)
 
 
 class ReadingOut(BaseModel):
@@ -203,7 +261,7 @@ class ReadingVersionOut(BaseModel):
 
 
 class ValidateIn(BaseModel):
-    decision: str
+    decision: Literal["validate", "reject"]
 
 
 class ImportResult(BaseModel):
@@ -312,8 +370,8 @@ class StationMarker(BaseModel):
 
 
 class DocumentIn(BaseModel):
-    nom: str
-    taille_ko: int = 0
+    nom: str = Field(min_length=1, max_length=200)
+    taille_ko: int = Field(default=0, ge=0, le=1_000_000)
 
 
 class DocumentOut(BaseModel):

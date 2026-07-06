@@ -62,6 +62,8 @@ def update_station(station_id: int, payload: StationUpdate, request: Request,
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Parametre invalide")
     if "unit" in data and data["unit"] not in C.UNITS:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Unite invalide")
+    if "status" in data and data["status"] not in C.STATION_STATUSES:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Statut station invalide")
     old = {k: getattr(st, k) for k in data}
     for k, v in data.items():
         setattr(st, k, v)

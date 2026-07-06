@@ -1,13 +1,13 @@
 from datetime import date
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import Consolidation, Reading, Station, User
 from ..events import log_event
-from ..deps import get_current_user, scoped_station_ids
+from ..deps import get_current_user, scoped_station_ids, parse_iso_date_qs
 from .. import constants as C
 from ..schemas import DashboardSummary, StationCompleteness, StationMarker
 
@@ -89,6 +89,12 @@ def dashboard_summary(request: Request,
                       quality_flag: str | None = None,
                       db: Session = Depends(get_db),
                       user: User = Depends(get_current_user)):
+    date_from = parse_iso_date_qs(date_from, "date_from")
+    date_to = parse_iso_date_qs(date_to, "date_to")
+    if status is not None and status not in C.STATUSES:
+        raise HTTPException(422, "status invalide")
+    if quality_flag is not None and quality_flag not in C.QUALITY_FLAGS:
+        raise HTTPException(422, "quality_flag invalide")
     ids = scoped_station_ids(db, user)
     annee = annee_hydro if annee_hydro is not None else _default_annee_hydro(db)
     default_from, default_to = _hydro_window(annee)
@@ -136,6 +142,8 @@ def dashboard_map(request: Request,
                   station_id: int | None = None,
                   db: Session = Depends(get_db),
                   user: User = Depends(get_current_user)):
+    date_from = parse_iso_date_qs(date_from, "date_from")
+    date_to = parse_iso_date_qs(date_to, "date_to")
     ids = scoped_station_ids(db, user)
     if date_from is None or date_to is None:
         default_from, default_to = _hydro_window(_default_annee_hydro(db))
