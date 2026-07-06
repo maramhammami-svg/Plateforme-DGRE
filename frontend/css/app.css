@@ -41,19 +41,31 @@ a{color:var(--accent)}
 .btn.sm{padding:5px 9px; font-size:12.5px; border-radius:7px}
 .btn:disabled{opacity:.45; cursor:not-allowed}
 
-.tabwrap{background:var(--panel); border-bottom:1px solid var(--line); padding:0 22px; position:sticky; top:58px; z-index:1100}
-.tabs{display:flex; align-items:stretch; gap:2px; max-width:1200px; margin:0 auto; flex-wrap:wrap}
-.grp{display:flex; align-items:center; gap:2px}
-.grp + .grp{margin-left:8px; padding-left:10px; border-left:1px solid var(--line)}
-.grp-label{font-size:10px; text-transform:uppercase; letter-spacing:.9px; color:var(--faint);
-  align-self:center; margin-right:5px; font-weight:600}
-.tab{padding:13px 12px; font-size:14px; font-weight:500; color:var(--muted); cursor:pointer;
-  border-bottom:2px solid transparent; margin-bottom:-1px}
-.tab:hover{color:var(--ink)}
-.tab.active{color:var(--accent); border-bottom-color:var(--accent)}
+#appView{display:flex; align-items:flex-start}
 .hidden{display:none !important}
 
-.wrap{max-width:1200px; margin:0 auto; padding:22px}
+.tabwrap{background:var(--panel); border-right:1px solid var(--line); padding:18px 0;
+  position:sticky; top:58px; height:calc(100vh - 58px); width:230px; flex-shrink:0; overflow-y:auto}
+.tabs{display:flex; flex-direction:column; gap:2px}
+.grp{display:flex; flex-direction:column; align-items:stretch; gap:1px; margin-bottom:16px}
+.grp-label{font-size:10px; text-transform:uppercase; letter-spacing:.9px; color:var(--faint);
+  padding:0 18px 6px; font-weight:600}
+.tab{padding:10px 18px; font-size:14px; font-weight:500; color:var(--muted); cursor:pointer;
+  border-left:2px solid transparent; text-align:left}
+.tab:hover{color:var(--ink); background:var(--surface-2)}
+.tab.active{color:var(--accent); border-left-color:var(--accent); background:var(--surface-2); font-weight:600}
+
+.wrap{flex:1; min-width:0; padding:22px}
+
+@media (max-width:760px){
+  #appView{flex-direction:column}
+  .tabwrap{position:static; height:auto; width:100%; border-right:0; border-bottom:1px solid var(--line); padding:10px 12px}
+  .tabs{flex-direction:row; flex-wrap:wrap}
+  .grp{flex-direction:row; flex-wrap:wrap; align-items:center; margin-bottom:0}
+  .grp-label{padding:0 5px 0 0}
+  .tab{border-left:0; border-bottom:2px solid transparent}
+  .tab.active{border-left:0; border-bottom-color:var(--accent)}
+}
 .lead{display:flex; align-items:baseline; gap:10px; margin:0 0 18px; flex-wrap:wrap}
 .lead h1{font-size:19px; font-weight:600; margin:0}
 .lead span{color:var(--muted); font-size:13px}
