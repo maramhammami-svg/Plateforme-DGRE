@@ -7,8 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
 <link rel="stylesheet" href="css/theme.css">
 <link rel="stylesheet" href="css/app.css">
 </head>
@@ -40,10 +39,16 @@
 
 <section id="loginView" class="login-stage">
   <div class="login">
+    <div class="login-badge">
+      <svg class="drop" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 3C12 3 5 11 5 15.5C5 19.1 8.1 22 12 22C15.9 22 19 19.1 19 15.5C19 11 12 3 12 3Z" fill="var(--rain)"/>
+        <path d="M9.5 16.2C9.5 17.7 10.6 18.9 12 18.9" stroke="#fff" stroke-width="1.3" stroke-linecap="round" opacity=".7"/>
+      </svg>
+    </div>
     <h1>Connexion</h1>
     <p>Console de surveillance — pluviométrie &amp; limnimétrie.</p>
-    <label class="field">Identifiant <input id="liUser" autocomplete="username" placeholder="dir_surface"></label>
-    <label class="field">Mot de passe <input id="liPass" type="password" autocomplete="current-password" placeholder="••••••••"></label>
+    <label class="field field-user"><span class="sr-only">Identifiant</span><input id="liUser" autocomplete="username" placeholder="Identifiant"></label>
+    <label class="field field-pass"><span class="sr-only">Mot de passe</span><input id="liPass" type="password" autocomplete="current-password" placeholder="Mot de passe"></label>
     <button class="btn primary" id="loginBtn">Se connecter</button>
     <div class="hint-box">Comptes démo (mot de passe = identifiant + <code>123</code>) :<br>
       <code>admin</code> · <code>dg</code> · <code>dir_surface</code> · <code>obs_jendouba</code></div>
@@ -307,8 +312,7 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="vendor/leaflet/leaflet.js"></script>
 <script type="module" src="js/main.js"></script>
 </body>
 </html>

@@ -141,14 +141,35 @@ td.num{font-family:var(--mono)}
 @keyframes flash{from{background:var(--warn-bg)} to{background:transparent}}
 @media (prefers-reduced-motion: reduce){ .flash{animation:none} }
 
-.login-stage{min-height:calc(100vh - 58px); display:grid; place-items:center; padding:24px}
-.login{width:400px; max-width:100%; background:var(--surface); border:1px solid var(--line);
-  border-radius:16px; padding:28px}
-.login h1{margin:0 0 4px; font-size:20px; font-weight:600}
-.login p{margin:0 0 20px; color:var(--muted); font-size:13.5px}
-.login .field{margin-bottom:14px}
-.login input{width:100%}
-.login .btn{width:100%; padding:11px}
+.login-stage{min-height:calc(100vh - 58px); display:grid; align-items:start; justify-items:center; padding:40px 24px 24px;
+  background:url("../assets/img/login-bg.jpg") center/cover no-repeat}
+.login{width:400px; max-width:100%; background:linear-gradient(160deg, rgba(70,130,200,.28), rgba(10,30,55,.32));
+  backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  border:1.5px solid rgba(130,190,255,.45); border-radius:32px; padding:36px 32px;
+  text-align:center; box-shadow:0 0 40px rgba(80,160,255,.22), 0 24px 60px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.15)}
+.login-badge{width:84px; height:84px; margin:0 auto 18px; border-radius:50%; background:transparent;
+  border:2px solid rgba(140,195,255,.55); display:grid; place-items:center;
+  box-shadow:0 0 22px rgba(90,165,255,.35), inset 0 0 18px rgba(90,165,255,.12)}
+.login-badge .drop{width:36px; height:36px}
+.login h1{margin:0 0 4px; font-size:21px; font-weight:700; color:#eaf3ff}
+.login p{margin:0 0 26px; color:rgba(220,235,255,.65); font-size:13px}
+.login .field{margin-bottom:16px; position:relative; text-align:left}
+.login .field-user::before, .login .field-pass::before{position:absolute; left:18px; top:50%;
+  transform:translateY(-50%); font-size:15px; opacity:.7; pointer-events:none}
+.login .field-user::before{content:"👤"}
+.login .field-pass::before{content:"🔒"}
+.login input{width:100%; padding:14px 16px 14px 44px; border-radius:13px; background:rgba(8,24,46,.55);
+  border:1px solid rgba(140,195,255,.3); color:#eaf3ff; box-shadow:none}
+.login input::placeholder{color:rgba(210,228,250,.5)}
+.login input:focus{box-shadow:0 0 0 3px rgba(90,165,255,.3); border-color:rgba(140,195,255,.55)}
+.login .btn{width:100%; padding:14px; border-radius:13px; font-weight:700; letter-spacing:1px; text-transform:uppercase;
+  margin-top:6px; background:rgba(25,60,105,.65); border:1px solid rgba(140,195,255,.4); color:#eaf3ff;
+  box-shadow:0 0 22px rgba(90,165,255,.25)}
+.login .btn:hover{box-shadow:0 0 30px rgba(90,165,255,.4); background:rgba(30,70,120,.75)}
+.login .hint-box{text-align:center; color:rgba(210,228,250,.6)}
+.login .hint-box code{background:rgba(90,165,255,.15); color:#eaf3ff}
+.sr-only{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden;
+  clip:rect(0,0,0,0); white-space:nowrap; border:0}
 .hint-box{margin-top:16px; font-size:12px; color:var(--muted); line-height:1.6}
 .hint-box code{background:var(--surface-2); padding:1px 5px; border-radius:5px; font-family:var(--mono)}
 
