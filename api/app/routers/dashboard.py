@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import func
@@ -9,7 +9,7 @@ from ..models import Consolidation, Reading, Station, User
 from ..events import log_event
 from ..deps import get_current_user, scoped_station_ids, parse_iso_date_qs
 from .. import constants as C
-from ..schemas import DashboardSummary, StationCompleteness, StationMarker
+from ..schemas import DashboardSummary, StationCompleteness, StationMarker, StationHealthOut
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
@@ -30,12 +30,15 @@ def _hydro_window(annee_hydro: int) -> tuple[str, str]:
     return f"{annee_hydro}-09-01", f"{annee_hydro + 1}-08-31"
 
 
-def _scoped_stations(db: Session, ids: list[int] | None, station_id: int | None):
+def _scoped_stations(db: Session, ids: list[int] | None, station_id: int | None,
+                      governorate: str | None = None):
     q = db.query(Station)
     if ids is not None:
         q = q.filter(Station.id.in_(ids))
     if station_id is not None:
         q = q.filter(Station.id == station_id)
+    if governorate is not None:
+        q = q.filter(Station.governorate == governorate)
     return q.order_by(Station.code).all()
 
 
@@ -87,6 +90,7 @@ def dashboard_summary(request: Request,
                       station_id: int | None = None,
                       status: str | None = None,
                       quality_flag: str | None = None,
+                      governorate: str | None = None,
                       db: Session = Depends(get_db),
                       user: User = Depends(get_current_user)):
     date_from = parse_iso_date_qs(date_from, "date_from")
@@ -118,7 +122,7 @@ def dashboard_summary(request: Request,
         Reading.quality_flag.in_([C.FLAG_SUSPECT, C.FLAG_ABERRANT, C.FLAG_MANQUANT])
     ).count()
 
-    stations = _scoped_stations(db, ids, station_id)
+    stations = _scoped_stations(db, ids, station_id, governorate)
     stations_active = sum(1 for s in stations if s.status == "active")
     stations_inactive = len(stations) - stations_active
 
@@ -140,6 +144,7 @@ def dashboard_map(request: Request,
                   date_from: str | None = None,
                   date_to: str | None = None,
                   station_id: int | None = None,
+                  governorate: str | None = None,
                   db: Session = Depends(get_db),
                   user: User = Depends(get_current_user)):
     date_from = parse_iso_date_qs(date_from, "date_from")
@@ -150,7 +155,7 @@ def dashboard_map(request: Request,
         date_from = date_from or default_from
         date_to = date_to or default_to
 
-    stations = _scoped_stations(db, ids, station_id)
+    stations = _scoped_stations(db, ids, station_id, governorate)
     station_ids = [s.id for s in stations]
 
     flags_by_station: dict[int, set[str]] = {}
@@ -178,3 +183,50 @@ def dashboard_map(request: Request,
     log_event(db, request=request, user=user, action="view_dashboard",
               resource_type="map")
     return markers
+
+
+def _health_status(sensor_status: str, battery_level: float | None,
+                   silence_hours: float | None) -> str:
+    # silence_hours is None quand la station n'a jamais transmis : traite comme un
+    # silence infini (>72h). battery_level est None sur les stations sans capteur
+    # de batterie (conventionnelles) : ne pese alors ni pour ni contre.
+    silence_critical = silence_hours is None or silence_hours > 72
+    silence_warning = silence_hours is not None and 24 <= silence_hours <= 72
+    battery_critical = battery_level is not None and battery_level < 0.05
+    battery_warning = battery_level is not None and 0.05 <= battery_level <= 0.2
+
+    if sensor_status == C.SENSOR_STATUS_OFFLINE or silence_critical or battery_critical:
+        return "critical"
+    if silence_warning or battery_warning:
+        return "warning"
+    return "ok"
+
+
+@router.get("/station-health", response_model=list[StationHealthOut])
+def dashboard_station_health(request: Request,
+                             governorate: str | None = None,
+                             db: Session = Depends(get_db),
+                             user: User = Depends(get_current_user)):
+    ids = scoped_station_ids(db, user)
+    stations = _scoped_stations(db, ids, None, governorate)
+    stations = [s for s in stations if s.type == C.STATION_TYPE_AUTO]
+    now = datetime.now(timezone.utc)
+
+    result = []
+    for s in stations:
+        silence_hours = None
+        if s.last_transmission is not None:
+            last = s.last_transmission
+            if last.tzinfo is None:
+                last = last.replace(tzinfo=timezone.utc)
+            silence_hours = (now - last).total_seconds() / 3600
+        result.append(StationHealthOut(
+            id=s.id, code=s.code, name=s.name, governorate=s.governorate, type=s.type,
+            sensor_status=s.sensor_status, battery_level=s.battery_level,
+            last_transmission=s.last_transmission, silence_hours=silence_hours,
+            health=_health_status(s.sensor_status, s.battery_level, silence_hours),
+        ))
+
+    log_event(db, request=request, user=user, action="view_dashboard",
+              resource_type="station_health")
+    return result

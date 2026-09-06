@@ -84,6 +84,8 @@ def create_raw_reading(payload: RawReadingIn, request: Request,
     rr = RawReading(station_id=st.id, timestamp=ts, valeur=payload.valeur,
                     is_missing=payload.is_missing, source=payload.source)
     db.add(rr); db.commit(); db.refresh(rr)
+    st.last_transmission = datetime.now(timezone.utc)
+    db.commit()
     _upsert_daily_reading(db, st, ts.strftime("%Y-%m-%d"), None)
     log_event(db, request=request, user=None, action="ingest_raw",
               resource_type="station", resource_id=st.id, volume=1)
@@ -105,6 +107,7 @@ def create_raw_readings_batch(payload: RawBatchIn, request: Request,
                           is_missing=point.is_missing, source=payload.source))
         affected_dates.add(ts.strftime("%Y-%m-%d"))
 
+    st.last_transmission = datetime.now(timezone.utc)
     db.commit()
 
     for date_str in affected_dates:

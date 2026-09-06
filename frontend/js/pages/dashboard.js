@@ -9,6 +9,7 @@ export async function loadDashboard() {
   const params = {
     annee_hydro: $("#dAnnee").value, date_from: $("#dFrom").value, date_to: $("#dTo").value,
     station_id: $("#dStation").value, status: $("#dStatus").value, quality_flag: $("#dQuality").value,
+    governorate: $("#dGov").value,
   };
   try {
     const s = await api("/dashboard/summary" + qs(params));
@@ -33,7 +34,7 @@ export async function loadDashboard() {
 
 function loadDmap() {
   ensureMap("dmap", dmapH);
-  paintMarkers(dmapH);
+  paintMarkers(dmapH, $("#dGov").value);
 }
 
 export function initDashboard() {

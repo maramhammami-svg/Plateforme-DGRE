@@ -1,4 +1,4 @@
-import { esc } from "./dom.js";
+import { esc, qs } from "./dom.js";
 import { api } from "./api.js";
 import { toast } from "./toast.js";
 
@@ -22,9 +22,9 @@ export function ensureMap(id, holder) {
   setTimeout(() => holder.map.invalidateSize(), 60);
 }
 
-export async function paintMarkers(holder) {
+export async function paintMarkers(holder, governorate) {
   try {
-    const markers = await api("/dashboard/map");
+    const markers = await api("/dashboard/map" + qs({ governorate }));
     holder.layer.clearLayers();
     const pts = [];
     markers.forEach(mk => {

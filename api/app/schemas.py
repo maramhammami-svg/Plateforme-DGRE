@@ -132,6 +132,9 @@ class StationOut(BaseModel):
     governorate: Optional[str] = None
     status: str
     unite_id: Optional[int] = None
+    sensor_status: str
+    battery_level: Optional[float] = None
+    last_transmission: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -367,6 +370,19 @@ class StationMarker(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class StationHealthOut(BaseModel):
+    id: int
+    code: str
+    name: str
+    governorate: Optional[str] = None
+    type: str
+    sensor_status: str
+    battery_level: Optional[float] = None
+    last_transmission: Optional[datetime] = None
+    silence_hours: Optional[float] = None
+    health: str
 
 
 class SharedTargetOut(BaseModel):

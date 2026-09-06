@@ -6,12 +6,14 @@ import { loadReadings } from "./pages/readings.js";
 import { loadConsolidations } from "./pages/consolidations.js";
 import { loadDocuments } from "./pages/documents.js";
 import { loadUsers } from "./pages/accounts.js";
+import { loadStationHealth } from "./pages/station-health.js";
 
-export const TABS = ["dashboard", "map", "journal", "readings", "stations", "consolidations", "documents", "accounts", "account"];
+export const TABS = ["dashboard", "map", "station-health", "journal", "readings", "stations", "consolidations", "documents", "accounts", "account"];
 
 const LOADERS = {
   dashboard: loadDashboard,
   map: loadMap,
+  "station-health": loadStationHealth,
   journal: loadJournal,
   readings: loadReadings,
   consolidations: loadConsolidations,

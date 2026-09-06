@@ -71,6 +71,9 @@ class Station(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     unite_id = Column(Integer, ForeignKey("unites.id"), nullable=True, index=True)
     hashed_station_key = Column(String, nullable=True)
+    sensor_status = Column(String, default="unknown")   # operational | degraded | offline | unknown
+    battery_level = Column(Float, nullable=True)        # 0.0 -> 1.0
+    last_transmission = Column(DateTime(timezone=True), nullable=True)
 
     unite = relationship("UniteOrganisationnelle", foreign_keys=[unite_id])
     raw_readings = relationship("RawReading", back_populates="station")

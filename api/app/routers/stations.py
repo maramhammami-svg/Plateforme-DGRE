@@ -12,16 +12,31 @@ router = APIRouter(prefix="/stations", tags=["stations"])
 
 
 @router.get("", response_model=list[StationOut])
-def list_stations(request: Request, db: Session = Depends(get_db),
+def list_stations(request: Request, governorate: str | None = None,
+                  db: Session = Depends(get_db),
                   user: User = Depends(get_current_user)):
     ids = scoped_station_ids(db, user)
     q = db.query(Station)
     if ids is not None:
         q = q.filter(Station.id.in_(ids))
+    if governorate is not None:
+        q = q.filter(Station.governorate == governorate)
     stations = q.all()
     log_event(db, request=request, user=user, action="list_stations",
               resource_type="station", volume=len(stations))
     return stations
+
+
+@router.get("/governorates", response_model=list[str])
+def list_governorates(request: Request, db: Session = Depends(get_db),
+                      user: User = Depends(get_current_user)):
+    rows = (db.query(Station.governorate)
+            .filter(Station.governorate.isnot(None))
+            .distinct().order_by(Station.governorate).all())
+    governorates = [r[0] for r in rows]
+    log_event(db, request=request, user=user, action="list_governorates",
+              resource_type="station", volume=len(governorates))
+    return governorates
 
 
 @router.post("", response_model=StationCreated, status_code=201)

@@ -12,6 +12,22 @@ function fillStationSelect(sel, opts = {}) {
   if (cur) sel.value = cur;
 }
 
+export async function loadGovernorates() {
+  if (!state.governorateCache) {
+    try { state.governorateCache = await api("/stations/governorates"); }
+    catch (e) { state.governorateCache = []; }
+  }
+  return state.governorateCache;
+}
+
+function fillGovernorateSelect(sel) {
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Tous les gouvernorats</option>';
+  (state.governorateCache || []).forEach(g => { const o = el("option"); o.value = g; o.textContent = g; sel.appendChild(o); });
+  if (cur) sel.value = cur;
+}
+
 export async function loadStations() {
   try {
     state.stationCache = await api("/stations");
@@ -19,6 +35,11 @@ export async function loadStations() {
     fillStationSelect($("#fStation"), { allowEmpty: true });
     fillStationSelect($("#cStation"), { allowEmpty: true });
     fillStationSelect($("#rStation"), { convOnly: true });
+    await loadGovernorates();
+    fillGovernorateSelect($("#sGovFilter"));
+    fillGovernorateSelect($("#mapGovFilter"));
+    fillGovernorateSelect($("#dGov"));
+    fillGovernorateSelect($("#shGovFilter"));
     renderStationsTable();
   } catch (e) { toast(e.detail, "err"); }
 }
@@ -26,8 +47,10 @@ export async function loadStations() {
 function renderStationsTable() {
   const tb = $("#stationsBody");
   tb.innerHTML = "";
-  if (state.stationCache.length === 0) { tb.innerHTML = '<tr><td colspan="8" class="empty">Aucune station dans votre périmètre.</td></tr>'; return; }
-  state.stationCache.forEach(s => {
+  const gov = $("#sGovFilter") ? $("#sGovFilter").value : "";
+  const list = gov ? state.stationCache.filter(s => s.governorate === gov) : state.stationCache;
+  if (list.length === 0) { tb.innerHTML = '<tr><td colspan="8" class="empty">Aucune station dans votre périmètre.</td></tr>'; return; }
+  list.forEach(s => {
     const tr = el("tr");
     const st = s.status === "active" ? '<span class="badge b-ok">active</span>' : '<span class="badge b-grey">inactive</span>';
     let act = "";
@@ -71,4 +94,5 @@ export async function toggleStation(id, next) {
 
 export function initStations() {
   $("#sAddBtn").onclick = createStation;
+  $("#sGovFilter").onchange = renderStationsTable;
 }

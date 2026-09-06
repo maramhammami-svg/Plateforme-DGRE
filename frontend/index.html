@@ -62,6 +62,7 @@
         <span class="grp-label">Surveillance</span>
         <div class="tab active" data-tab="dashboard">Tableau de bord</div>
         <div class="tab" data-tab="map">Carte</div>
+        <div class="tab" data-tab="station-health"><svg class="tab-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 12h4l2 7 4-14 2 7h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>État stations</div>
         <div class="tab" data-tab="journal" data-need="events">Journal</div>
       </div>
       <div class="grp">
@@ -95,6 +96,7 @@
           <label class="field">Station <select id="dStation"><option value="">toutes</option></select></label>
           <label class="field">Statut <select id="dStatus"><option value="">tous</option><option value="pending">en attente</option><option value="validated">validé</option><option value="rejected">rejeté</option></select></label>
           <label class="field">Qualité <select id="dQuality"><option value="">toutes</option><option value="ok">ok</option><option value="suspect">suspect</option><option value="aberrant">aberrant</option><option value="manquant">manquant</option></select></label>
+          <label class="field">Gouvernorat <select id="dGov"><option value="">Tous les gouvernorats</option></select></label>
           <button class="btn primary" id="dApply">Appliquer</button>
         </div>
       </div>
@@ -135,6 +137,11 @@
   <section id="tab-map" class="hidden">
     <div class="lead"><h1>Carte</h1><span>148 stations · marqueur coloré selon la qualité des relevés</span></div>
     <div class="card">
+      <div class="bd">
+        <div class="row">
+          <label class="field">Gouvernorat <select id="mapGovFilter"><option value="">Tous les gouvernorats</option></select></label>
+        </div>
+      </div>
       <div id="map"></div>
       <div class="legend">
         <span><i style="background:var(--ok)"></i>ok</span><span><i style="background:var(--warn)"></i>suspect</span>
@@ -142,6 +149,23 @@
         <span><i style="background:var(--info)"></i>inconnu</span><span><i style="background:var(--grey)"></i>inactive</span>
       </div>
     </div>
+  </section>
+
+  <section id="tab-station-health" class="hidden">
+    <div class="lead"><h1>État des stations</h1><span>connectivité et niveau de batterie des capteurs</span></div>
+    <div class="card">
+      <div class="bd">
+        <div class="row">
+          <label class="field">Gouvernorat <select id="shGovFilter"><option value="">Tous les gouvernorats</option></select></label>
+        </div>
+      </div>
+    </div>
+    <div class="health-kpis">
+      <div class="kpi ok"><div class="lab">OK</div><div class="n" id="shOk">—</div></div>
+      <div class="kpi warn"><div class="lab">Avertissement</div><div class="n" id="shWarn">—</div></div>
+      <div class="kpi bad"><div class="lab">Critique</div><div class="n" id="shBad">—</div></div>
+    </div>
+    <div class="sh-grid" id="shGrid"><div class="empty">Chargement…</div></div>
   </section>
 
   <section id="tab-journal" class="hidden">
@@ -224,7 +248,12 @@
       </div>
     </div>
     <div class="card">
-      <header><h2>Stations</h2></header>
+      <header>
+        <h2>Stations</h2>
+        <label class="field" style="flex-direction:row; align-items:center; gap:8px; max-width:280px">Gouvernorat
+          <select id="sGovFilter"><option value="">Tous les gouvernorats</option></select>
+        </label>
+      </header>
       <div class="scroll-x"><table>
         <thead><tr><th>Code</th><th>Nom</th><th>Type</th><th>Paramètre</th><th>Unité</th><th>Gouvernorat</th><th>Statut</th><th></th></tr></thead>
         <tbody id="stationsBody"><tr><td colspan="8" class="empty">Chargement…</td></tr></tbody>
