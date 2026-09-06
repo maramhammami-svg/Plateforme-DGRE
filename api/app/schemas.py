@@ -291,6 +291,29 @@ class EventOut(BaseModel):
         from_attributes = True
 
 
+class AlertOut(BaseModel):
+    id: int
+    rule_name: str
+    severity: str
+    status: str
+    actor_username: Optional[str] = None
+    source_ip: Optional[str] = None
+    description: str
+    evidence: Optional[Any] = None
+    auto_action: Optional[str] = None
+    created_at: datetime
+    resolved_at: Optional[datetime] = None
+    resolved_by: Optional[int] = None
+
+    class Config:
+        from_attributes = True
+
+
+class AlertStats(BaseModel):
+    by_severity: dict[str, int]
+    by_status: dict[str, int]
+
+
 class ConsolidationOut(BaseModel):
     id: int
     station_id: int
