@@ -214,6 +214,25 @@ class Document(Base):
     shares = relationship("DocumentShare", back_populates="document", cascade="all, delete-orphan")
 
 
+class Alert(Base):
+    """Alerte levee par l'agent de surveillance (cf. app/agent) a partir du contrat
+    d'observabilite (`events`). Une alerte ouverte pour un meme sujet (acteur ou IP)
+    bloque la reemission par la meme regle tant qu'elle n'est pas close."""
+    __tablename__ = "alerts"
+    id = Column(Integer, primary_key=True)
+    rule_name = Column(String, nullable=False, index=True)
+    severity = Column(String, nullable=False)
+    status = Column(String, nullable=False, default="open", index=True)
+    actor_username = Column(String, nullable=True)
+    source_ip = Column(String, nullable=True)
+    description = Column(String, nullable=False)
+    evidence = Column(JSON, nullable=True)
+    auto_action = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    resolved_at = Column(DateTime(timezone=True), nullable=True)
+    resolved_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+
 class DocumentShare(Base):
     """Octroi explicite d'acces a un document, en plus de la visibilite par unite
     du proprietaire. Exactement un des deux champs (unite_id, user_id) est rempli

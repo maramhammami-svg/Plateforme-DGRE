@@ -81,3 +81,31 @@ MAX_IMPORT_CSV_BYTES = 5 * 1024 * 1024   # 5 Mo
 MAX_IMPORT_CSV_ROWS = 50_000
 MAX_BATCH_POINTS = 5_000
 MAX_DOCUMENT_BYTES = 10 * 1024 * 1024    # 10 Mo
+
+# Agent de surveillance : severite des alertes
+SEVERITY_CRITICAL = "critical"
+SEVERITY_HIGH = "high"
+SEVERITY_MEDIUM = "medium"
+
+# Agent de surveillance : statut d'une alerte
+ALERT_OPEN = "open"
+ALERT_ACKNOWLEDGED = "acknowledged"
+ALERT_RESOLVED = "resolved"
+ALERT_FALSE_POSITIVE = "false_positive"
+
+# Agent de surveillance : actions automatiques
+AUTO_ACTION_LOCK = "lock_account"
+AUTO_ACTION_BLOCK_EXPORT = "block_export"
+AUTO_ACTION_FORCE_RELOGIN = "force_relogin"
+
+# Agent de surveillance : seuils des regles
+BRUTE_FORCE_THRESHOLD = 5          # echecs de connexion sur le meme compte
+BRUTE_FORCE_WINDOW_SEC = 120
+SCAN_THRESHOLD = 10                # comptes distincts tentes depuis la meme IP
+SCAN_WINDOW_SEC = 300
+ESCALATION_THRESHOLD = 3           # acces refuses (403) pour le meme acteur
+ESCALATION_WINDOW_SEC = 600
+EXFILTRATION_VOLUME = 10000        # volume (lignes/ko) exporte en un seul evenement
+NIGHT_START_HOUR = 22              # acces hors plage [6h-22h[ = signal
+NIGHT_END_HOUR = 6
+ACTIVITY_SPIKE_MULTIPLIER = 3      # volume recent >= multiplicateur x moyenne habituelle
