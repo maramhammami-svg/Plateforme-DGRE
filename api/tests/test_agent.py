@@ -61,3 +61,46 @@ def test_brute_force_creates_alert_and_locks_account(db):
     # un second scan ne doit pas redoubler l'alerte (deja ouverte pour ce sujet)
     scan(db)
     assert db.query(Alert).filter(Alert.rule_name == "brute_force").count() == 1
+
+
+def test_brute_force_counts_denied_after_native_lockout(db):
+    """Scenario reel : le verrouillage natif (MAX_FAILED_ATTEMPTS=3) verrouille le
+    compte avant que BRUTE_FORCE_THRESHOLD (5) ne soit atteint en pur RESULT_FAILURE.
+    Les tentatives suivantes, faites une fois le compte verrouille, sont journalisees
+    en RESULT_DENIED (auth.py verifie le verrouillage avant le mot de passe) et
+    doivent quand meme compter pour R1."""
+    user = User(username="agent2", hashed_password="x", role=C.ROLE_AGENT)
+    db.add(user)
+    db.commit()
+
+    now = datetime.now(timezone.utc)
+    offset = 0
+
+    for _ in range(C.MAX_FAILED_ATTEMPTS):
+        db.add(Event(
+            timestamp=now - timedelta(seconds=offset),
+            actor_id=user.id, actor_username=user.username, role=user.role,
+            action="login", result=C.RESULT_FAILURE,
+            channel_ip="10.0.0.2",
+            detail={"username": user.username},
+        ))
+        offset += 1
+    user.locked = 1
+    db.commit()
+
+    for _ in range(2):
+        db.add(Event(
+            timestamp=now - timedelta(seconds=offset),
+            actor_id=user.id, actor_username=user.username, role=user.role,
+            action="login", result=C.RESULT_DENIED,
+            channel_ip="10.0.0.2",
+            resource_type="account", resource_id=user.id,
+        ))
+        offset += 1
+    db.commit()
+
+    alerts = scan(db)
+
+    brute = [a for a in alerts if a.rule_name == "brute_force"]
+    assert len(brute) == 1, alerts
+    assert brute[0].actor_username == user.username

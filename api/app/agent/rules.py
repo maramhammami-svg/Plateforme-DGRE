@@ -52,7 +52,7 @@ class BruteForceRule:
             )
             .filter(
                 Event.action == _LOGIN,
-                Event.result == C.RESULT_FAILURE,
+                Event.result.in_([C.RESULT_FAILURE, C.RESULT_DENIED]),
                 Event.actor_username.isnot(None),
                 Event.timestamp >= since,
             )
