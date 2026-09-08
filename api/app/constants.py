@@ -105,7 +105,12 @@ SCAN_THRESHOLD = 10                # comptes distincts tentes depuis la meme IP
 SCAN_WINDOW_SEC = 300
 ESCALATION_THRESHOLD = 3           # acces refuses (403) pour le meme acteur
 ESCALATION_WINDOW_SEC = 600
-EXFILTRATION_VOLUME = 10000        # volume (lignes/ko) exporte en un seul evenement
+# Jeu de donnees de demo = 28 jours x 9 stations conventionnelles = ~252 releves au
+# total. Un export normal (une station) retourne ~28 lignes ; un dump complet en
+# retourne ~252. 100 est nettement au-dessus du normal et nettement en-dessous du dump
+# complet : assez bas pour se declencher sur ce jeu de demo, assez haut pour ne pas
+# se declencher sur un export ordinaire.
+EXFILTRATION_VOLUME = 100          # volume (lignes/ko) exporte en un seul evenement
 NIGHT_START_HOUR = 22              # acces hors plage [6h-22h[ = signal
 NIGHT_END_HOUR = 6
 ACTIVITY_SPIKE_MULTIPLIER = 3      # volume recent >= multiplicateur x moyenne habituelle
