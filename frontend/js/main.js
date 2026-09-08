@@ -11,6 +11,7 @@ import { initDocuments, downloadDoc } from "./pages/documents.js";
 import { initAccounts, patchUser, unlockUser, resetUser } from "./pages/accounts.js";
 import { initAccount } from "./pages/account.js";
 import { initJournal } from "./pages/journal.js";
+import { initAlerts, acknowledgeAlert, resolveAlert, markFalsePositive } from "./pages/alerts.js";
 
 initTheme();
 initRouter();
@@ -24,6 +25,7 @@ initDocuments();
 initAccounts();
 initAccount();
 initJournal();
+initAlerts();
 initAuth();
 
 document.addEventListener("click", e => {
@@ -37,5 +39,8 @@ document.addEventListener("click", e => {
   else if (b.dataset.toggleActive) patchUser(b.dataset.toggleActive, { is_active: Number(b.dataset.next) });
   else if (b.dataset.unlock) unlockUser(b.dataset.unlock);
   else if (b.dataset.reset) resetUser(b.dataset.reset);
+  else if (b.dataset.ack) acknowledgeAlert(b.dataset.ack);
+  else if (b.dataset.resolve) resolveAlert(b.dataset.resolve);
+  else if (b.dataset.fp) markFalsePositive(b.dataset.fp);
 });
 document.addEventListener("change", e => { const s = e.target; if (s.dataset && s.dataset.roleFor) patchUser(s.dataset.roleFor, { role: s.value }); });

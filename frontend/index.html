@@ -64,6 +64,7 @@
         <div class="tab" data-tab="map">Carte</div>
         <div class="tab" data-tab="station-health"><svg class="tab-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 12h4l2 7 4-14 2 7h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>État stations</div>
         <div class="tab" data-tab="journal" data-need="events">Journal</div>
+        <div class="tab" data-tab="alerts" data-need="alerts">Alertes</div>
       </div>
       <div class="grp">
         <span class="grp-label">Données</span>
@@ -183,6 +184,42 @@
       <div class="scroll-x"><table class="journal">
         <thead><tr><th>#</th><th>Acteur</th><th>Rôle</th><th>Unité acteur</th><th>Action</th><th>Ressource</th><th>Unité ress.</th><th>Vol.</th><th>IP</th><th>Résultat</th></tr></thead>
         <tbody id="journalBody"><tr><td colspan="10" class="empty">Chargement…</td></tr></tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <section id="tab-alerts" class="hidden">
+    <div class="lead"><h1>Alertes</h1><span>détections automatiques de l'agent de surveillance</span></div>
+    <div class="card">
+      <header>
+        <h2>Alertes</h2>
+        <div class="row" style="gap:10px">
+          <label class="field">Sévérité <select id="alSeverity">
+            <option value="">toutes</option><option value="critical">critique</option>
+            <option value="high">élevée</option><option value="medium">moyenne</option>
+          </select></label>
+          <label class="field">Statut <select id="alStatus">
+            <option value="">tous</option><option value="open">ouverte</option>
+            <option value="acknowledged">acquittée</option><option value="resolved">résolue</option>
+            <option value="false_positive">faux positif</option>
+          </select></label>
+          <button class="btn sm" id="alRefresh">Rafraîchir</button>
+          <button class="btn sm" id="alScan" data-need="admin">Lancer un scan</button>
+        </div>
+      </header>
+    </div>
+
+    <div class="kpis">
+      <div class="kpi bad"><div class="lab">Critiques (ouvertes)</div><div class="n" id="alCritical">—</div></div>
+      <div class="kpi warn"><div class="lab">Élevées (ouvertes)</div><div class="n" id="alHigh">—</div></div>
+      <div class="kpi"><div class="lab">Moyennes (ouvertes)</div><div class="n" id="alMedium">—</div></div>
+      <div class="kpi"><div class="lab">Ouvertes (total)</div><div class="n" id="alOpen">—</div></div>
+    </div>
+
+    <div class="card">
+      <div class="scroll-x"><table>
+        <thead><tr><th>#</th><th>Sévérité</th><th>Statut</th><th>Règle</th><th>Acteur</th><th>Description</th><th>Créé le</th><th>Actions</th></tr></thead>
+        <tbody id="alertsBody"><tr><td colspan="8" class="empty">Chargement…</td></tr></tbody>
       </table></div>
     </div>
   </section>

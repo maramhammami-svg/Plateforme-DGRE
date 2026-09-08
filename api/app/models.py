@@ -150,6 +150,8 @@ class Event(Base):
     channel_ip = Column(String, nullable=True)
     result = Column(String, nullable=False)
     detail = Column(JSON, nullable=True)
+    chain_hash = Column(String(64), nullable=True)
+    prev_hash = Column(String(64), nullable=True)
 
 
 class Consolidation(Base):

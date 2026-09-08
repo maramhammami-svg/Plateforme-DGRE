@@ -2,19 +2,21 @@ import { $ } from "./dom.js";
 import { loadDashboard } from "./pages/dashboard.js";
 import { loadMap } from "./pages/map-tab.js";
 import { loadJournal } from "./pages/journal.js";
+import { loadAlerts } from "./pages/alerts.js";
 import { loadReadings } from "./pages/readings.js";
 import { loadConsolidations } from "./pages/consolidations.js";
 import { loadDocuments } from "./pages/documents.js";
 import { loadUsers } from "./pages/accounts.js";
 import { loadStationHealth } from "./pages/station-health.js";
 
-export const TABS = ["dashboard", "map", "station-health", "journal", "readings", "stations", "consolidations", "documents", "accounts", "account"];
+export const TABS = ["dashboard", "map", "station-health", "journal", "alerts", "readings", "stations", "consolidations", "documents", "accounts", "account"];
 
 const LOADERS = {
   dashboard: loadDashboard,
   map: loadMap,
   "station-health": loadStationHealth,
   journal: loadJournal,
+  alerts: loadAlerts,
   readings: loadReadings,
   consolidations: loadConsolidations,
   documents: loadDocuments,
