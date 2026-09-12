@@ -157,6 +157,16 @@ td.num{font-family:var(--mono)}
 .sh-row{margin-top:8px}
 .sh-last{font-size:12px; color:var(--muted); margin-top:8px}
 
+.leaflet-popup-content{font-family:var(--sans)}
+.leaflet-popup-content-wrapper{border-radius:var(--radius)}
+.mpop{min-width:190px}
+.mpop-name{font-weight:600; font-size:13.5px; color:var(--ink)}
+.mpop-code{font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:1px}
+.mpop-row{display:flex; align-items:center; gap:8px; margin-top:6px}
+.mpop-label{font-size:12px; color:var(--muted); min-width:78px}
+.mpop-bar{flex:1; min-width:40px}
+.mpop-sep{border-top:1px solid var(--line); margin:8px 0 2px}
+
 #map,#dmap{height:420px; background:var(--surface-2)}
 #dmap{height:360px}
 .legend{display:flex; gap:14px; flex-wrap:wrap; padding:11px 16px; font-size:12px; color:var(--muted); border-top:1px solid var(--line)}

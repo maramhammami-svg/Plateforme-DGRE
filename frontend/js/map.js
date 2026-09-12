@@ -10,6 +10,18 @@ function qcolor(q) {
   return (cs.getPropertyValue(map[q] || "--info").trim()) || QCOLOR[q] || "#2E7CC4";
 }
 
+const STATUS_BADGE = { active: "b-ok", inactive: "b-grey" };
+const QUALITY_BADGE = { ok: "b-ok", suspect: "b-warn", aberrant: "b-bad", manquant: "b-grey", inconnu: "b-info", inactive: "b-grey" };
+const SENSOR_BADGE = { operational: "b-ok", degraded: "b-warn", offline: "b-bad", unknown: "b-grey" };
+const HEALTH_BADGE = { ok: "b-ok", warning: "b-warn", critical: "b-bad" };
+
+function batteryColor(level) {
+  if (level == null) return "var(--grey)";
+  if (level > 0.6) return "var(--ok)";
+  if (level > 0.2) return "var(--warn)";
+  return "var(--bad)";
+}
+
 const HEALTH_LABEL = { ok: "OK", warning: "Avertissement", critical: "Critique" };
 
 function lastTransmissionLabel(hours) {
@@ -36,14 +48,22 @@ export async function paintMarkers(holder, governorate) {
     const pts = [];
     markers.forEach(mk => {
       const cm = L.circleMarker([mk.latitude, mk.longitude], { radius: 7, color: "#fff", weight: 1.5, fillColor: qcolor(mk.quality), fillOpacity: .9 });
-      let html = `<b>${esc(mk.code)} · ${esc(mk.name)}</b><br>statut : ${esc(mk.status)}<br>qualité : ${esc(mk.quality)}`;
+      let html = `
+        <div class="mpop">
+          <div class="mpop-name">${esc(mk.name)}</div>
+          <div class="mpop-code">${esc(mk.code)}</div>
+          <div class="mpop-row"><span class="mpop-label">Statut</span><span class="badge ${STATUS_BADGE[mk.status] || "b-grey"}">${esc(mk.status)}</span></div>
+          <div class="mpop-row"><span class="mpop-label">Qualité</span><span class="badge ${QUALITY_BADGE[mk.quality] || "b-info"}">${esc(mk.quality)}</span></div>`;
       if (mk.type === "automatique") {
-        const pct = mk.battery_level == null ? "—" : Math.round(mk.battery_level * 100) + "%";
-        html += `<br>capteur : ${esc(mk.sensor_status)}`
-          + `<br>batterie : ${pct}`
-          + `<br>dernière transmission : ${lastTransmissionLabel(mk.silence_hours)}`
-          + `<br>santé : ${esc(HEALTH_LABEL[mk.health] || mk.health)}`;
+        const pct = mk.battery_level == null ? null : Math.round(mk.battery_level * 100);
+        html += `
+          <div class="mpop-sep"></div>
+          <div class="mpop-row"><span class="mpop-label">Capteur</span><span class="badge ${SENSOR_BADGE[mk.sensor_status] || "b-grey"}">${esc(mk.sensor_status)}</span></div>
+          <div class="mpop-row"><span class="mpop-label">Batterie</span><div class="bar mpop-bar"><i style="width:${pct ?? 0}%; background:${batteryColor(mk.battery_level)}"></i></div><span class="mono">${pct == null ? "—" : pct + "%"}</span></div>
+          <div class="mpop-row"><span class="mpop-label">Transmission</span><span>${lastTransmissionLabel(mk.silence_hours)}</span></div>
+          <div class="mpop-row"><span class="mpop-label">Santé</span><span class="badge ${HEALTH_BADGE[mk.health] || "b-grey"}">${esc(HEALTH_LABEL[mk.health] || mk.health)}</span></div>`;
       }
+      html += `</div>`;
       cm.bindPopup(html);
       cm.addTo(holder.layer);
       pts.push([mk.latitude, mk.longitude]);
