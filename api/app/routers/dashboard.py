@@ -167,6 +167,7 @@ def dashboard_map(request: Request,
                           .distinct().all()):
             flags_by_station.setdefault(sid, set()).add(flag)
 
+    now = datetime.now(timezone.utc)
     markers = []
     for s in stations:
         if s.status != "active":
@@ -174,15 +175,34 @@ def dashboard_map(request: Request,
         else:
             flags = flags_by_station.get(s.id)
             quality = max(flags, key=lambda f: _SEVERITY.get(f, -1)) if flags else "inconnu"
+        health_fields = {}
+        if s.type == C.STATION_TYPE_AUTO:
+            silence_hours = _silence_hours(s.last_transmission, now)
+            health_fields = dict(
+                sensor_status=s.sensor_status, battery_level=s.battery_level,
+                last_transmission=s.last_transmission, silence_hours=silence_hours,
+                health=_health_status(s.sensor_status, s.battery_level, silence_hours),
+            )
         markers.append(StationMarker(
             id=s.id, code=s.code, name=s.name,
             latitude=s.latitude, longitude=s.longitude,
-            status=s.status, quality=quality,
+            status=s.status, quality=quality, type=s.type,
+            **health_fields,
         ))
 
     log_event(db, request=request, user=user, action="view_dashboard",
               resource_type="map")
     return markers
+
+
+def _silence_hours(last_transmission: datetime | None, now: datetime) -> float | None:
+    # SQLite rend les datetime sans tzinfo : on les suppose UTC avant de soustraire.
+    if last_transmission is None:
+        return None
+    last = last_transmission
+    if last.tzinfo is None:
+        last = last.replace(tzinfo=timezone.utc)
+    return (now - last).total_seconds() / 3600
 
 
 def _health_status(sensor_status: str, battery_level: float | None,
@@ -214,12 +234,7 @@ def dashboard_station_health(request: Request,
 
     result = []
     for s in stations:
-        silence_hours = None
-        if s.last_transmission is not None:
-            last = s.last_transmission
-            if last.tzinfo is None:
-                last = last.replace(tzinfo=timezone.utc)
-            silence_hours = (now - last).total_seconds() / 3600
+        silence_hours = _silence_hours(s.last_transmission, now)
         result.append(StationHealthOut(
             id=s.id, code=s.code, name=s.name, governorate=s.governorate, type=s.type,
             sensor_status=s.sensor_status, battery_level=s.battery_level,

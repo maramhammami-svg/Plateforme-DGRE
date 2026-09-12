@@ -390,6 +390,13 @@ class StationMarker(BaseModel):
     longitude: float
     status: str
     quality: str
+    type: str
+    # renseignes uniquement pour les stations automatiques
+    sensor_status: Optional[str] = None
+    battery_level: Optional[float] = None
+    last_transmission: Optional[datetime] = None
+    silence_hours: Optional[float] = None
+    health: Optional[str] = None
 
     class Config:
         from_attributes = True

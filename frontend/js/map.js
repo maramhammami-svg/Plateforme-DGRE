@@ -10,6 +10,13 @@ function qcolor(q) {
   return (cs.getPropertyValue(map[q] || "--info").trim()) || QCOLOR[q] || "#2E7CC4";
 }
 
+const HEALTH_LABEL = { ok: "OK", warning: "Avertissement", critical: "Critique" };
+
+function lastTransmissionLabel(hours) {
+  if (hours == null) return "Jamais";
+  return `il y a ${Math.round(hours)} h`;
+}
+
 export const dmapH = {};
 export const fmapH = {};
 
@@ -29,7 +36,15 @@ export async function paintMarkers(holder, governorate) {
     const pts = [];
     markers.forEach(mk => {
       const cm = L.circleMarker([mk.latitude, mk.longitude], { radius: 7, color: "#fff", weight: 1.5, fillColor: qcolor(mk.quality), fillOpacity: .9 });
-      cm.bindPopup(`<b>${esc(mk.code)} · ${esc(mk.name)}</b><br>statut : ${esc(mk.status)}<br>qualité : ${esc(mk.quality)}`);
+      let html = `<b>${esc(mk.code)} · ${esc(mk.name)}</b><br>statut : ${esc(mk.status)}<br>qualité : ${esc(mk.quality)}`;
+      if (mk.type === "automatique") {
+        const pct = mk.battery_level == null ? "—" : Math.round(mk.battery_level * 100) + "%";
+        html += `<br>capteur : ${esc(mk.sensor_status)}`
+          + `<br>batterie : ${pct}`
+          + `<br>dernière transmission : ${lastTransmissionLabel(mk.silence_hours)}`
+          + `<br>santé : ${esc(HEALTH_LABEL[mk.health] || mk.health)}`;
+      }
+      cm.bindPopup(html);
       cm.addTo(holder.layer);
       pts.push([mk.latitude, mk.longitude]);
     });
