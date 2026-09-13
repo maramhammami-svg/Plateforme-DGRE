@@ -199,6 +199,11 @@ def reading_versions(reading_id: int, request: Request, db: Session = Depends(ge
     r = db.query(Reading).filter(Reading.id == reading_id).first()
     if not r:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Releve introuvable")
+    ids = scoped_station_ids(db, user)
+    if ids is not None and r.station_id not in ids:
+        log_event(db, request=request, user=user, action="list_reading_versions",
+                  result=C.RESULT_DENIED, resource_type="reading", resource_id=r.id)
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Releve hors de votre perimetre")
     return (db.query(ReadingVersion).filter(ReadingVersion.reading_id == r.id)
             .order_by(ReadingVersion.version_no).all())
 
