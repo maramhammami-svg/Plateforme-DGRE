@@ -104,3 +104,33 @@ def test_brute_force_counts_denied_after_native_lockout(db):
     brute = [a for a in alerts if a.rule_name == "brute_force"]
     assert len(brute) == 1, alerts
     assert brute[0].actor_username == user.username
+
+
+def test_quality_anomaly_creates_alert(db):
+    user = User(username="agent3", hashed_password="x", role=C.ROLE_AGENT)
+    db.add(user)
+    db.commit()
+
+    now = datetime.now(timezone.utc)
+    for i in range(C.QUALITY_ANOMALY_THRESHOLD):
+        db.add(Event(
+            timestamp=now - timedelta(seconds=i),
+            actor_id=user.id, actor_username=user.username, role=user.role,
+            action="create_reading", result=C.RESULT_FAILURE,
+            channel_ip="10.0.0.3",
+            detail={"reason": "valeur aberrante", "valeur": 500.0},
+        ))
+    db.commit()
+
+    alerts = scan(db)
+
+    quality = [a for a in alerts if a.rule_name == "quality_anomaly"]
+    assert len(quality) == 1, alerts
+    assert quality[0].actor_username == user.username
+    assert quality[0].severity == C.SEVERITY_HIGH
+    assert quality[0].auto_action is None
+    assert quality[0].status == C.ALERT_OPEN
+
+    # un second scan ne doit pas redoubler l'alerte (deja ouverte pour ce sujet)
+    scan(db)
+    assert db.query(Alert).filter(Alert.rule_name == "quality_anomaly").count() == 1

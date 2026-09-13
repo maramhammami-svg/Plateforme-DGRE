@@ -114,3 +114,5 @@ EXFILTRATION_VOLUME = 100          # volume (lignes/ko) exporte en un seul evene
 NIGHT_START_HOUR = 22              # acces hors plage [6h-22h[ = signal
 NIGHT_END_HOUR = 6
 ACTIVITY_SPIKE_MULTIPLIER = 3      # volume recent >= multiplicateur x moyenne habituelle
+QUALITY_ANOMALY_THRESHOLD = 3      # valeurs aberrantes rejetees a la saisie pour le meme acteur
+QUALITY_ANOMALY_WINDOW_SEC = 600

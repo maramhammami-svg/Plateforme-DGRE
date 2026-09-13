@@ -2,7 +2,7 @@
 
 Tourne depuis l'hote, en HTTP via la passerelle nginx (:8080) -- PAS dans le
 conteneur API. Sert a peupler un baseline de 28 jours de releves realistes puis a
-declencher chacune des 6 regles de l'agent de surveillance (api/app/agent/rules.py)
+declencher plusieurs des regles de l'agent de surveillance (api/app/agent/rules.py)
 avec un scenario d'attaque dedie, pour verifier que le pipeline detection -> alerte
 fonctionne de bout en bout sur des donnees produites via l'API (pas des fixtures
 injectees directement en base).
@@ -10,7 +10,7 @@ injectees directement en base).
 Usage :
     python scripts/generate_traffic.py baseline
     python scripts/generate_traffic.py attack brute-force|account-scan|escalation|
-        exfiltration|falsification|all
+        exfiltration|falsification|quality-anomaly|all
     python scripts/generate_traffic.py scan
     python scripts/generate_traffic.py full
 """
@@ -202,6 +202,23 @@ def attack_exfiltration():
     print("== Fin exfiltration ==\n")
 
 
+def attack_quality_anomaly():
+    print("== Attaque : anomalie qualite (valeurs aberrantes repetees) ==")
+    admin_token = login(*ADMIN)
+    station_ids = list(get_station_map(admin_token).values())[:3]
+    if len(station_ids) < 3:
+        print("  Moins de 3 stations conventionnelles trouvees, abandon.")
+        return
+    token = login(*AGENTS[0])
+    for i, station_id in enumerate(station_ids, start=1):
+        resp = api_request("POST", "/readings", token=token,
+                           json={"station_id": station_id,
+                                 "date": date.today().isoformat(),
+                                 "valeur": 400.0})
+        print(f"  Releve {i}/3 station={station_id} valeur=400.0 -> {resp.status_code}")
+    print("== Fin anomalie qualite (attendu : 422 x3) ==\n")
+
+
 def attack_falsification():
     print("== Attaque : falsification post-validation ==")
     token = login(*RESPONSABLE)
@@ -225,14 +242,17 @@ _ATTACKS = {
     "escalation": attack_escalation,
     "exfiltration": attack_exfiltration,
     "falsification": attack_falsification,
+    "quality-anomaly": attack_quality_anomaly,
 }
 
 # Ordre d'execution pour "all"/"full" : les attaques instantanees (escalation,
-# exfiltration, falsification, dont les regles reutilisent la fenetre large de 600s)
-# passent en premier ; account-scan (fenetre 300s, ~135s de duree) puis brute-force
-# (fenetre 120s, ~25s de duree) passent en dernier, brute-force juste avant le scan,
-# pour que chaque regle voie encore ses evenements dans sa fenetre au moment du scan.
-_ATTACK_ORDER = ["escalation", "exfiltration", "falsification", "account-scan", "brute-force"]
+# exfiltration, falsification, quality-anomaly, dont les regles reutilisent/partagent
+# la fenetre large de 600s) passent en premier ; account-scan (fenetre 300s, ~135s de
+# duree) puis brute-force (fenetre 120s, ~25s de duree) passent en dernier, brute-force
+# juste avant le scan, pour que chaque regle voie encore ses evenements dans sa fenetre
+# au moment du scan.
+_ATTACK_ORDER = ["escalation", "exfiltration", "falsification", "quality-anomaly",
+                  "account-scan", "brute-force"]
 
 
 def run_all_attacks():

@@ -17,6 +17,7 @@ from ..models import Alert, Event
 
 _LOGIN = "login"
 _UPDATE_READING = "update_reading"
+_CREATE_READING = "create_reading"
 
 
 def _now():
@@ -412,6 +413,54 @@ class ActivitySpikeRule:
         return alerts
 
 
+class QualityAnomalyRule:
+    """R9 — plusieurs valeurs aberrantes rejetees a la saisie (create_reading en echec
+    avec detail.reason="valeur aberrante", cf. quality_flag()==FLAG_ABERRANT dans
+    routers/readings.py) pour le MEME acteur en peu de temps : erreur de saisie
+    repetee ou tentative de forcer des valeurs implausibles."""
+    name = "quality_anomaly"
+    severity = C.SEVERITY_HIGH
+    auto_action = None
+
+    def run(self, db: Session) -> list[dict]:
+        since = _now() - timedelta(seconds=C.QUALITY_ANOMALY_WINDOW_SEC)
+        reason = Event.detail["reason"].as_string()
+        rows = (
+            db.query(
+                Event.actor_username,
+                func.count(Event.id).label("cnt"),
+                func.max(Event.channel_ip).label("ip"),
+            )
+            .filter(
+                Event.action == _CREATE_READING,
+                Event.result == C.RESULT_FAILURE,
+                reason == "valeur aberrante",
+                Event.actor_username.isnot(None),
+                Event.timestamp >= since,
+            )
+            .group_by(Event.actor_username)
+            .having(func.count(Event.id) >= C.QUALITY_ANOMALY_THRESHOLD)
+            .all()
+        )
+        alerts = []
+        for username, cnt, ip in rows:
+            if _has_open_alert(db, self.name, actor_username=username):
+                continue
+            alerts.append({
+                "rule_name": self.name,
+                "severity": self.severity,
+                "actor_username": username,
+                "source_ip": ip,
+                "description": (
+                    f"{cnt} valeurs aberrantes rejetees a la saisie pour '{username}' "
+                    f"en moins de {C.QUALITY_ANOMALY_WINDOW_SEC}s"
+                ),
+                "evidence": {"rejected_count": cnt, "window_sec": C.QUALITY_ANOMALY_WINDOW_SEC},
+                "auto_action": self.auto_action,
+            })
+        return alerts
+
+
 RULES = [
     BruteForceRule(),
     AccountScanRule(),
@@ -421,4 +470,5 @@ RULES = [
     FalsificationRule(),
     NightAccessRule(),
     ActivitySpikeRule(),
+    QualityAnomalyRule(),
 ]
