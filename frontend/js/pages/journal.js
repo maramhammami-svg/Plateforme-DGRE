@@ -1,4 +1,4 @@
-import { $, el, esc } from "../dom.js";
+import { $, el, esc, qs } from "../dom.js";
 import { api } from "../api.js";
 import { toast } from "../toast.js";
 import { state } from "../state.js";
@@ -17,7 +17,9 @@ function fmtDate(iso) {
 
 export async function loadJournal() {
   try {
-    const rows = await api("/events?limit=150");
+    const params = { limit: 150, actor: $("#jActor").value, action: $("#jAction").value,
+      result: $("#jResult").value, since: $("#jSince").value, until: $("#jUntil").value };
+    const rows = await api("/events" + qs(params));
     const tb = $("#journalBody");
     tb.innerHTML = "";
     if (!rows.length) { tb.innerHTML = '<tr><td colspan="11" class="empty">Journal vide.</td></tr>'; return; }
@@ -37,6 +39,7 @@ export async function loadJournal() {
 
 export function initJournal() {
   $("#jRefresh").onclick = loadJournal;
+  $("#jFilter").onclick = loadJournal;
   $("#jAuto").onchange = e => {
     if (e.target.checked) { state.autoTimer = setInterval(loadJournal, 3000); }
     else if (state.autoTimer) { clearInterval(state.autoTimer); state.autoTimer = null; }

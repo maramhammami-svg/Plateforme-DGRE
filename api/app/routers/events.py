@@ -1,5 +1,5 @@
 import hashlib
-from datetime import timezone
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 from ..database import get_db
@@ -14,11 +14,27 @@ router = APIRouter(prefix="/events", tags=["events"])
 
 @router.get("", response_model=list[EventOut])
 def list_events(request: Request, limit: int = Query(default=100, ge=1, le=500),
+                actor: str | None = Query(default=None),
+                action_filter: str | None = Query(default=None, alias="action"),
+                result: str | None = Query(default=None),
+                since: datetime | None = Query(default=None),
+                until: datetime | None = Query(default=None),
                 db: Session = Depends(get_db),
                 user: User = Depends(require_role(
                     C.ROLE_DIRECTEUR, C.ROLE_ADMIN,
                     action="list_events", resource_type="event"))):
-    rows = db.query(Event).order_by(Event.id.desc()).limit(limit).all()
+    query = db.query(Event)
+    if actor:
+        query = query.filter(Event.actor_username == actor)
+    if action_filter:
+        query = query.filter(Event.action == action_filter)
+    if result:
+        query = query.filter(Event.result == result)
+    if since:
+        query = query.filter(Event.timestamp >= since)
+    if until:
+        query = query.filter(Event.timestamp <= until)
+    rows = query.order_by(Event.id.desc()).limit(limit).all()
     return rows
 
 

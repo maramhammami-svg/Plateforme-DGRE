@@ -175,6 +175,15 @@
       <header>
         <h2>Événements</h2>
         <div class="row" style="gap:10px">
+          <label class="field">Acteur <input type="text" id="jActor" placeholder="Acteur"></label>
+          <label class="field">Action <input type="text" id="jAction" placeholder="Action"></label>
+          <label class="field">Résultat <select id="jResult">
+            <option value="">tous</option><option value="success">succès</option>
+            <option value="denied">refusé</option><option value="failure">échec</option>
+          </select></label>
+          <label class="field">Depuis <input type="date" id="jSince"></label>
+          <label class="field">Jusqu'à <input type="date" id="jUntil"></label>
+          <button class="btn sm" id="jFilter">Filtrer</button>
           <button class="btn sm" id="jRefresh">Rafraîchir</button>
           <label class="field" style="flex-direction:row; align-items:center; gap:8px; color:var(--ink)">
             <input type="checkbox" id="jAuto" style="min-width:auto"> direct (3 s)
