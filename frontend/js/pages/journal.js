@@ -10,18 +10,23 @@ function resultBadge(r) {
     : `<span class="badge b-info">${esc(r)}</span>`));
 }
 
+function fmtDate(iso) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
 export async function loadJournal() {
   try {
     const rows = await api("/events?limit=150");
     const tb = $("#journalBody");
     tb.innerHTML = "";
-    if (!rows.length) { tb.innerHTML = '<tr><td colspan="10" class="empty">Journal vide.</td></tr>'; return; }
+    if (!rows.length) { tb.innerHTML = '<tr><td colspan="11" class="empty">Journal vide.</td></tr>'; return; }
     const newTop = rows[0].id;
     rows.forEach(ev => {
       const tr = el("tr");
       if (ev.id > state.lastTopEventId && state.lastTopEventId > 0) tr.classList.add("flash");
       if (ev.unite_acteur && ev.unite_ressource && ev.unite_acteur !== ev.unite_ressource) tr.classList.add("divergent");
-      tr.innerHTML = `<td>${ev.id}</td><td>${esc(ev.actor_username || "—")}</td><td>${esc(ev.role || "")}</td><td>${esc(ev.unite_acteur || "")}</td>
+      tr.innerHTML = `<td>${ev.id}</td><td>${fmtDate(ev.timestamp)}</td><td>${esc(ev.actor_username || "—")}</td><td>${esc(ev.role || "")}</td><td>${esc(ev.unite_acteur || "")}</td>
         <td class="act">${esc(ev.action)}</td><td>${esc(ev.resource_type || "")}${ev.resource_id ? (" #" + esc(ev.resource_id)) : ""}</td>
         <td>${esc(ev.unite_ressource || "")}</td><td>${ev.volume ?? ""}</td><td>${esc(ev.channel_ip || "")}</td><td>${resultBadge(ev.result)}</td>`;
       tb.appendChild(tr);

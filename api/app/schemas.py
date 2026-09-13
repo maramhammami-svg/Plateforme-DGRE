@@ -275,6 +275,7 @@ class ImportResult(BaseModel):
 
 class EventOut(BaseModel):
     id: int
+    timestamp: datetime
     actor_username: Optional[str] = None
     role: Optional[str] = None
     action: str
