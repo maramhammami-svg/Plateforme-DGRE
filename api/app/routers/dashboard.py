@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import func
@@ -118,6 +118,11 @@ def dashboard_summary(request: Request,
         return q.filter(Reading.date >= d_from, Reading.date <= d_to)
 
     pending_count = _reading_query().filter(Reading.status == C.STATUS_PENDING).count()
+    stale_threshold = datetime.now(timezone.utc) - timedelta(days=C.PENDING_STALE_DAYS)
+    pending_stale_count = _reading_query().filter(
+        Reading.status == C.STATUS_PENDING,
+        Reading.created_at <= stale_threshold,
+    ).count()
     quality_anomalies = _reading_query().filter(
         Reading.quality_flag.in_([C.FLAG_SUSPECT, C.FLAG_ABERRANT, C.FLAG_MANQUANT])
     ).count()
@@ -132,6 +137,7 @@ def dashboard_summary(request: Request,
               resource_type="dashboard")
     return DashboardSummary(
         pending_count=pending_count,
+        pending_stale_count=pending_stale_count,
         quality_anomalies=quality_anomalies,
         stations_active=stations_active,
         stations_inactive=stations_inactive,

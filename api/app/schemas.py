@@ -377,6 +377,7 @@ class StationCompleteness(BaseModel):
 
 class DashboardSummary(BaseModel):
     pending_count: int
+    pending_stale_count: int
     quality_anomalies: int
     stations_active: int
     stations_inactive: int

@@ -14,6 +14,7 @@ export async function loadDashboard() {
   try {
     const s = await api("/dashboard/summary" + qs(params));
     $("#kPending").textContent = s.pending_count;
+    $("#kPendingStale").textContent = s.pending_stale_count;
     $("#kAnom").textContent = s.quality_anomalies;
     $("#kActive").textContent = s.stations_active;
     $("#kInactive").textContent = s.stations_inactive;

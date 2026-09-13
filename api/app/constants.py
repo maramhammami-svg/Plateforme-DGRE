@@ -47,6 +47,9 @@ STATUS_VALIDATED = "validated"
 STATUS_REJECTED = "rejected"
 STATUSES = {STATUS_PENDING, STATUS_VALIDATED, STATUS_REJECTED}
 
+# Tableau de bord : releve en attente depuis plus de N jours = retard
+PENDING_STALE_DAYS = 5
+
 # Source d'un releve
 SOURCE_AUTO = "ingere_auto"
 SOURCE_MANUAL = "saisie_manuelle"
