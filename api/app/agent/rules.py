@@ -130,7 +130,11 @@ class AccountScanRule:
 
 class EscalationRule:
     """R3 — accumulation d'acces refuses (403) pour le meme acteur : tentative
-    repetee d'agir hors de son role/perimetre."""
+    repetee d'agir hors de son role/perimetre. Exclut action="login" : une
+    connexion refusee sur un compte deja verrouille n'est pas une escalade de
+    privilege (pas de tentative d'acceder a une ressource protegee) mais un
+    effet de bord du verrouillage natif (MAX_FAILED_ATTEMPTS), deja couvert
+    par BruteForceRule."""
     name = "escalation"
     severity = C.SEVERITY_HIGH
     auto_action = None
@@ -145,6 +149,7 @@ class EscalationRule:
             )
             .filter(
                 Event.result == C.RESULT_DENIED,
+                Event.action != _LOGIN,
                 Event.actor_username.isnot(None),
                 Event.timestamp >= since,
             )

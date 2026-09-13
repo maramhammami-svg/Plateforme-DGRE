@@ -105,6 +105,34 @@ def test_brute_force_counts_denied_after_native_lockout(db):
     assert len(brute) == 1, alerts
     assert brute[0].actor_username == user.username
 
+    escalation = [a for a in alerts if a.rule_name == "escalation"]
+    assert len(escalation) == 0, alerts
+
+
+def test_escalation_still_detects_non_login_denials(db):
+    user = User(username="agent4", hashed_password="x", role=C.ROLE_AGENT)
+    db.add(user)
+    db.commit()
+
+    now = datetime.now(timezone.utc)
+    for i in range(C.ESCALATION_THRESHOLD):
+        db.add(Event(
+            timestamp=now - timedelta(seconds=i),
+            actor_id=user.id, actor_username=user.username, role=user.role,
+            action="admin_access", result=C.RESULT_DENIED,
+            channel_ip="10.0.0.4",
+        ))
+    db.commit()
+
+    alerts = scan(db)
+
+    escalation = [a for a in alerts if a.rule_name == "escalation"]
+    assert len(escalation) == 1, alerts
+    assert escalation[0].actor_username == user.username
+    assert escalation[0].severity == C.SEVERITY_HIGH
+    assert escalation[0].auto_action is None
+    assert escalation[0].status == C.ALERT_OPEN
+
 
 def test_quality_anomaly_creates_alert(db):
     user = User(username="agent3", hashed_password="x", role=C.ROLE_AGENT)
