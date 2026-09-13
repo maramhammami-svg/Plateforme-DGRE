@@ -48,6 +48,7 @@ export async function boot() {
   document.querySelectorAll('[data-need="admin"]').forEach(n => n.classList.toggle("hidden", state.me.role !== "administrateur"));
   document.querySelectorAll('[data-need="events"]').forEach(n => n.classList.toggle("hidden", !can(REV)));
   document.querySelectorAll('[data-need="alerts"]').forEach(n => n.classList.toggle("hidden", !can(RV)));
+  document.querySelectorAll('[data-need="station-health"]').forEach(n => n.classList.toggle("hidden", state.me.role === "observateur"));
   $("#readingWriteCard").classList.toggle("hidden", !can(RW));
   $("#stationCreateCard").classList.toggle("hidden", !can(RV));
   $("#fluxCard").classList.toggle("hidden", !can(REV));
