@@ -12,7 +12,8 @@ router = APIRouter(prefix="/consolidations", tags=["consolidations"])
 
 
 @router.get("", response_model=list[ConsolidationOut])
-def list_consolidations(station_id: int | None = Query(None),
+def list_consolidations(request: Request,
+                        station_id: int | None = Query(None),
                         annee_hydro: int | None = Query(None),
                         db: Session = Depends(get_db),
                         user=Depends(get_current_user)):
@@ -24,7 +25,10 @@ def list_consolidations(station_id: int | None = Query(None),
         q = q.filter(Consolidation.station_id == station_id)
     if annee_hydro is not None:
         q = q.filter(Consolidation.annee_hydro == annee_hydro)
-    return q.order_by(Consolidation.station_id, Consolidation.annee_hydro).all()
+    rows = q.order_by(Consolidation.station_id, Consolidation.annee_hydro).all()
+    log_event(db, request=request, user=user, action="list_consolidations",
+              result=C.RESULT_SUCCESS, resource_type="consolidation", volume=len(rows))
+    return rows
 
 
 @router.get("/{station_id}/{annee_hydro}", response_model=ConsolidationOut)
@@ -42,4 +46,6 @@ def get_consolidation(station_id: int, annee_hydro: int, request: Request,
     ).first()
     if not row:
         raise HTTPException(404, "Consolidation introuvable")
+    log_event(db, request=request, user=user, action="get_consolidation",
+              result=C.RESULT_SUCCESS, resource_type="consolidation", resource_id=station_id)
     return row
