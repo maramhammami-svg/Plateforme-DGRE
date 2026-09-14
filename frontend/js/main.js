@@ -2,7 +2,7 @@ import { initTheme } from "./theme.js";
 import { initAuth } from "./auth.js";
 import { initRouter } from "./router.js";
 import { initDashboard } from "./pages/dashboard.js";
-import { initReadings, correctReading, showVersions, validateReading, deleteReading } from "./pages/readings.js";
+import { initReadings, correctReading, showVersions, showContext, validateReading, deleteReading } from "./pages/readings.js";
 import { initStations, toggleStation } from "./pages/stations.js";
 import { initMapTab } from "./pages/map-tab.js";
 import { initStationHealth } from "./pages/station-health.js";
@@ -32,6 +32,7 @@ document.addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return;
   if (b.dataset.correct) correctReading(b.dataset.correct, b.dataset.val);
   else if (b.dataset.versions) showVersions(b.dataset.versions);
+  else if (b.dataset.context) showContext(b.dataset.context, b.dataset.ctxStation, b.dataset.ctxDate);
   else if (b.dataset.validate) validateReading(b.dataset.validate, b.dataset.dec);
   else if (b.dataset.delete) deleteReading(b.dataset.delete);
   else if (b.dataset.stationToggle) toggleStation(b.dataset.stationToggle, b.dataset.next);

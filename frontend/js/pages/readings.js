@@ -24,7 +24,8 @@ export async function loadReadings() {
       const tr = el("tr");
       let act = `<button class="btn sm" data-versions="${r.id}">Historique</button>`;
       if (can(RW)) act = `<button class="btn sm" data-correct="${r.id}" data-val="${r.valeur_recalculee ?? ''}">Corriger</button> ` + act;
-      if (can(RV)) act += ` <button class="btn sm" data-validate="${r.id}" data-dec="validate">Valider</button>
+      if (can(RV)) act += ` <button class="btn sm" data-context="${r.id}" data-ctx-station="${r.station_id}" data-ctx-date="${r.date}">Contexte</button>
+                          <button class="btn sm" data-validate="${r.id}" data-dec="validate">Valider</button>
                           <button class="btn sm" data-validate="${r.id}" data-dec="reject">Rejeter</button>
                           <button class="btn sm" data-delete="${r.id}">Supprimer</button>`;
       tr.innerHTML = `<td class="num">${r.id}</td><td>${esc(byId[r.station_id] || r.station_id)}</td><td class="num">${esc(r.date)}</td>
@@ -66,6 +67,27 @@ export async function deleteReading(id) {
   if (!confirm("Supprimer ce relevé ?")) return;
   try { await api("/readings/" + id, { method: "DELETE", raw: true }); toast("Relevé supprimé.", "ok"); await loadReadings(); }
   catch (e) { toast(e.detail, "err"); }
+}
+
+export async function showContext(id, stationId, dateStr) {
+  try {
+    const d = new Date(dateStr + "T00:00:00Z");
+    const from = new Date(d); from.setUTCDate(from.getUTCDate() - 7);
+    const to = new Date(d); to.setUTCDate(to.getUTCDate() - 1);
+    const fmt = x => x.toISOString().slice(0, 10);
+    const rows = await api(`/readings?station_id=${stationId}&date_from=${fmt(from)}&date_to=${fmt(to)}`);
+    const byDate = Object.fromEntries(rows.map(r => [r.date, r]));
+    let html = `<h3>7 jours precedents (releve #${id})</h3>`;
+    html += '<div class="scroll-x"><table><thead><tr><th>Date</th><th>Valeur</th><th>Qualite</th></tr></thead><tbody>';
+    for (let i = 7; i >= 1; i--) {
+      const dd = new Date(d); dd.setUTCDate(dd.getUTCDate() - i);
+      const ds = fmt(dd);
+      const r = byDate[ds];
+      html += `<tr><td>${ds}</td><td class="num">${r ? (r.valeur_recalculee ?? '—') : '—'}</td><td>${r ? qualityBadge(r.quality_flag) : '<span class="badge b-grey">absent</span>'}</td></tr>`;
+    }
+    html += '</tbody></table></div>';
+    openModal(html);
+  } catch (e) { toast(e.detail, "err"); }
 }
 
 export async function showVersions(id) {
