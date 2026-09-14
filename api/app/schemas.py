@@ -141,7 +141,7 @@ class StationOut(BaseModel):
 
 
 class StationCreated(StationOut):
-    station_key: str
+    station_key: Optional[str] = None
 
 
 def _reject_non_finite(v):

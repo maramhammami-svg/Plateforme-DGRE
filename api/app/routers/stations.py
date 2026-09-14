@@ -66,13 +66,15 @@ def create_station(payload: StationIn, request: Request, db: Session = Depends(g
     _check_unite_scope(db, user, payload.unite_id, request, "create_station")
     if db.query(Station).filter(Station.name == payload.name).first():
         raise HTTPException(status.HTTP_409_CONFLICT, "Nom de station deja utilise")
-    station_key = generate_station_key()
-    st = Station(**payload.model_dump(), hashed_station_key=hash_password(station_key))
+    is_auto = payload.type == C.STATION_TYPE_AUTO
+    station_key = generate_station_key() if is_auto else None
+    hashed_key = hash_password(station_key) if is_auto else None
+    st = Station(**payload.model_dump(), hashed_station_key=hashed_key)
     db.add(st); db.commit(); db.refresh(st)
     log_event(db, request=request, user=user, action="create_station",
               resource_type="station", resource_id=st.id)
     data = StationOut.model_validate(st).model_dump()
-    return StationCreated(**data, station_key=station_key)
+    return StationCreated(**data, station_key=station_key if is_auto else None)
 
 
 @router.patch("/{station_id}", response_model=StationOut)
