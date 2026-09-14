@@ -1,14 +1,27 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from ..database import get_db
-from ..models import Station, User
+from ..models import Station, User, UniteOrganisationnelle
 from ..events import log_event
-from ..deps import get_current_user, require_role, scoped_station_ids
+from ..deps import get_current_user, require_role, scoped_station_ids, scoped_unite_ids
 from .. import constants as C
 from ..schemas import StationIn, StationUpdate, StationOut, StationCreated
 from ..security import generate_station_key, hash_password
 
 router = APIRouter(prefix="/stations", tags=["stations"])
+
+
+def _check_unite_scope(db: Session, user: User, unite_id: int | None,
+                       request: Request, action: str) -> None:
+    if unite_id is None:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "unite_id requis")
+    if not db.query(UniteOrganisationnelle).get(unite_id):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Unite introuvable")
+    ids = scoped_unite_ids(db, user)
+    if ids is not None and unite_id not in ids:
+        log_event(db, request=request, user=user, action=action,
+                  result=C.RESULT_DENIED, resource_type="station")
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Unite hors de votre perimetre")
 
 
 @router.get("", response_model=list[StationOut])
@@ -50,6 +63,7 @@ def create_station(payload: StationIn, request: Request, db: Session = Depends(g
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Parametre invalide")
     if payload.unit not in C.UNITS:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Unite invalide")
+    _check_unite_scope(db, user, payload.unite_id, request, "create_station")
     if db.query(Station).filter(Station.name == payload.name).first():
         raise HTTPException(status.HTTP_409_CONFLICT, "Nom de station deja utilise")
     station_key = generate_station_key()
@@ -70,6 +84,11 @@ def update_station(station_id: int, payload: StationUpdate, request: Request,
     st = db.query(Station).filter(Station.id == station_id).first()
     if not st:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Station introuvable")
+    ids = scoped_station_ids(db, user)
+    if ids is not None and st.id not in ids:
+        log_event(db, request=request, user=user, action="update_station",
+                  result=C.RESULT_DENIED, resource_type="station", resource_id=station_id)
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Station hors de votre perimetre")
     data = payload.model_dump(exclude_unset=True)
     if "type" in data and data["type"] not in C.STATION_TYPES:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Type station invalide")
@@ -79,6 +98,8 @@ def update_station(station_id: int, payload: StationUpdate, request: Request,
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Unite invalide")
     if "status" in data and data["status"] not in C.STATION_STATUSES:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Statut station invalide")
+    if "unite_id" in data:
+        _check_unite_scope(db, user, data["unite_id"], request, "update_station")
     old = {k: getattr(st, k) for k in data}
     for k, v in data.items():
         setattr(st, k, v)
