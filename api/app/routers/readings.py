@@ -8,7 +8,7 @@ from ..models import Reading, ReadingVersion, Station, User
 from ..events import log_event
 from ..deps import get_current_user, require_role, scoped_station_ids, parse_iso_date_qs
 from .. import constants as C
-from ..quality import quality_flag
+from ..quality import quality_flag, plausible_max
 from ..schemas import (ReadingIn, ReadingUpdate, ReadingOut, ReadingVersionOut,
                        ValidateIn)
 
@@ -102,7 +102,9 @@ def create_reading(payload: ReadingIn, request: Request, db: Session = Depends(g
         log_event(db, request=request, user=user, action="create_reading",
                   result=C.RESULT_FAILURE, resource_type="reading",
                   detail={"reason": "valeur aberrante", "valeur": payload.valeur})
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Valeur implausible (rejetee)")
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            f"Valeur implausible (rejetee) : {payload.valeur} depasse le maximum "
+                            f"plausible de {plausible_max(st.parameter)} pour ce parametre")
     if db.query(Reading).filter(Reading.station_id == st.id,
                                 Reading.date == payload.date).first():
         raise HTTPException(status.HTTP_409_CONFLICT, "Un releve existe deja pour cette date")
@@ -145,6 +147,13 @@ def correct_reading(reading_id: int, payload: ReadingUpdate, request: Request,
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Releve valide : modification interdite")
 
     new_val = payload.valeur_recalculee if payload.valeur_recalculee is not None else r.valeur_recalculee
+    if quality_flag(new_val, r.parameter) == C.FLAG_ABERRANT:
+        log_event(db, request=request, user=user, action="update_reading",
+                  result=C.RESULT_FAILURE, resource_type="reading", resource_id=r.id,
+                  detail={"reason": "valeur aberrante", "valeur": new_val})
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            f"Valeur implausible (rejetee) : {new_val} depasse le maximum "
+                            f"plausible de {plausible_max(r.parameter)} pour ce parametre")
     vno = db.query(ReadingVersion).filter(ReadingVersion.reading_id == r.id).count() + 1
     new_status = r.status if was_validated else C.STATUS_PENDING
     db.add(ReadingVersion(

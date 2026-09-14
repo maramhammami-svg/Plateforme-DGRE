@@ -32,6 +32,35 @@ def _auth_headers(token):
     return {"Authorization": f"Bearer {token}"}
 
 
+def test_correct_reading_rejects_implausible_value(client):
+    # aymen (agent, Service Reseaux de mesure) cree un releve valide sur une
+    # station conventionnelle de son perimetre.
+    aymen_headers = _auth_headers(_login(client, "aymen", "aymen123"))
+    resp = client.get("/stations", headers=aymen_headers, params={"code": "PLV-003"})
+    assert resp.status_code == 200, resp.text
+    stations = [s for s in resp.json() if s["code"] == "PLV-003"]
+    assert stations, resp.text
+    station_id = stations[0]["id"]
+
+    resp = client.post("/readings", headers=aymen_headers,
+                       json={"station_id": station_id, "date": date.today().isoformat(),
+                             "valeur": 5.0})
+    assert resp.status_code == 201, resp.text
+    reading_id = resp.json()["id"]
+
+    # correction avec une valeur au-dela de PLAUSIBLE_MAX_MM : doit etre
+    # rejetee (422) et ne rien modifier en base.
+    resp = client.patch(f"/readings/{reading_id}", headers=aymen_headers,
+                        json={"valeur_recalculee": 351.0})
+    assert resp.status_code == 422, resp.text
+
+    resp = client.get("/readings", headers=aymen_headers, params={"station_id": station_id})
+    assert resp.status_code == 200, resp.text
+    reading = next(r for r in resp.json() if r["id"] == reading_id)
+    assert reading["valeur_recalculee"] == 5.0
+    assert reading["status"] == "pending"
+
+
 def test_reading_versions_scoped_to_own_perimeter(client):
     # aymen (agent, Service Reseaux de mesure) cree un releve sur une station
     # conventionnelle de son perimetre.

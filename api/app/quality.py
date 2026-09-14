@@ -17,3 +17,7 @@ def quality_flag(value: float | None, parameter: str) -> str:
     if value > suspect_max:
         return C.FLAG_SUSPECT
     return C.FLAG_OK
+
+
+def plausible_max(parameter: str) -> float:
+    return _bounds(parameter)[1]
