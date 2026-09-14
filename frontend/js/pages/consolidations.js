@@ -10,13 +10,15 @@ export async function loadConsolidations() {
     const byId = Object.fromEntries(state.stationCache.map(s => [s.id, s.code + " · " + s.name]));
     const tb = $("#consBody");
     tb.innerHTML = "";
-    if (!rows.length) { tb.innerHTML = '<tr><td colspan="17" class="empty">Aucune consolidation.</td></tr>'; return; }
+    if (!rows.length) { tb.innerHTML = '<tr><td colspan="21" class="empty">Aucune consolidation.</td></tr>'; return; }
     const months = ["sept", "octo", "nove", "dece", "janv", "fevr", "mars", "avri", "mai", "juin", "juil", "aout"];
+    const seasons = ["automne", "hiver", "printemps", "ete"];
     const n = v => v == null ? "—" : (Math.round(v * 10) / 10);
     rows.forEach(r => {
       const tr = el("tr");
       let cells = `<td>${esc(byId[r.station_id] || r.station_id)}</td><td class="num">${r.annee_hydro}</td>`;
       months.forEach(m => cells += `<td class="num">${n(r[m])}</td>`);
+      seasons.forEach((s, i) => cells += `<td class="num${i === 0 ? ' sep' : ''}">${n(r[s])}</td>`);
       cells += `<td class="num">${n(r.total)}</td><td class="num">${n(r.normale)}</td><td class="num">${r.pourcentage == null ? "—" : Math.round(r.pourcentage) + "%"}</td>`;
       tr.innerHTML = cells; tb.appendChild(tr);
     });

@@ -122,6 +122,7 @@ th,td{text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); wh
 th{font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); font-weight:600}
 tbody tr:hover{background:var(--surface-2)}
 td.num{font-family:var(--mono)}
+.sep{border-left:2px solid var(--line-2)}
 .empty{color:var(--muted); font-style:italic; padding:22px 12px; text-align:center}
 .scroll-x{overflow-x:auto}
 
