@@ -28,6 +28,22 @@ function fillGovernorateSelect(sel) {
   if (cur) sel.value = cur;
 }
 
+async function loadUnites() {
+  if (!state.uniteCache) {
+    try { state.uniteCache = await api("/unites"); }
+    catch (e) { state.uniteCache = []; }
+  }
+  return state.uniteCache;
+}
+
+function fillUniteSelect(sel) {
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— choisir —</option>';
+  (state.uniteCache || []).forEach(u => { const o = el("option"); o.value = u.id; o.textContent = u.nom; sel.appendChild(o); });
+  if (cur) sel.value = cur;
+}
+
 export async function loadStations() {
   try {
     state.stationCache = await api("/stations");
@@ -40,6 +56,8 @@ export async function loadStations() {
     fillGovernorateSelect($("#mapGovFilter"));
     fillGovernorateSelect($("#dGov"));
     fillGovernorateSelect($("#shGovFilter"));
+    await loadUnites();
+    fillUniteSelect($("#sUnite"));
     renderStationsTable();
   } catch (e) { toast(e.detail, "err"); }
 }
