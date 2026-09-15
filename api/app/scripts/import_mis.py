@@ -21,6 +21,7 @@ import re
 import shutil
 import sys
 import tempfile
+import unicodedata
 import zipfile
 from datetime import datetime, timezone
 
@@ -61,6 +62,14 @@ GOVERNORATE_CENTROIDS = {
     "Medenine": (33.3549, 10.5055),
     "Tataouine": (32.9297, 10.4518),
 }
+
+
+def _normalize(name: str) -> str:
+    nfkd = unicodedata.normalize("NFKD", name.strip())
+    return "".join(c for c in nfkd if not unicodedata.combining(c)).lower()
+
+
+_CENTROIDS_NORMALIZED = {_normalize(k): v for k, v in GOVERNORATE_CENTROIDS.items()}
 
 
 def _parse_value(raw: str):
@@ -148,8 +157,8 @@ def run(zip_path: str):
                 for station_code, sensor_code, ts, valeur in _parse_mis_file(fpath):
                     station_id = station_cache.get(station_code)
                     if station_id is None:
-                        lat, lon = GOVERNORATE_CENTROIDS.get(governorate, (0.0, 0.0))
-                        if governorate not in GOVERNORATE_CENTROIDS and governorate not in unknown_governorates:
+                        lat, lon = _CENTROIDS_NORMALIZED.get(_normalize(governorate), (0.0, 0.0))
+                        if _normalize(governorate) not in _CENTROIDS_NORMALIZED and governorate not in unknown_governorates:
                             unknown_governorates.append(governorate)
                         st = Station(
                             code=station_code,
