@@ -151,10 +151,14 @@ async def upload_document(request: Request,
 
 
 @router.get("", response_model=list[DocumentOut])
-def list_documents(db: Session = Depends(get_db),
+def list_documents(request: Request,
+                   db: Session = Depends(get_db),
                    user: User = Depends(get_current_user)):
     rows = _visible_documents_query(db, user).order_by(Document.id).all()
     partages_map = _partages_by_document(db, [d.id for d in rows])
+    log_event(db, request=request, user=user,
+              action="list_documents", result=C.RESULT_SUCCESS,
+              resource_type="document", volume=len(rows))
     return [_to_out(d, partages_map.get(d.id, [])) for d in rows]
 
 
