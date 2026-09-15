@@ -44,6 +44,10 @@ export function ensureMap(id, holder) {
 export async function paintMarkers(holder, governorate) {
   try {
     const markers = await api("/dashboard/map" + qs({ governorate }));
+    const countEl = document.getElementById("mapCount");
+    if (countEl) {
+      countEl.textContent = `${markers.length} station${markers.length > 1 ? "s" : ""} · marqueur coloré selon la qualité des relevés`;
+    }
     holder.layer.clearLayers();
     const pts = [];
     markers.forEach(mk => {
