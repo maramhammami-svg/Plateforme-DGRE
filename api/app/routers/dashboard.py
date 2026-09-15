@@ -28,10 +28,10 @@ def _default_annee_hydro(db: Session) -> int:
         return latest
     latest_reading_date = db.query(func.max(Reading.date)).scalar()
     if latest_reading_date is not None:
+        year, month = int(latest_reading_date[:4]), int(latest_reading_date[5:7])
         # annee hydro = annee de debut (sept->aout) : si la date est
         # avant septembre, elle appartient a l'annee hydro precedente.
-        return latest_reading_date.year if latest_reading_date.month >= 9 \
-            else latest_reading_date.year - 1
+        return year if month >= 9 else year - 1
     return 2024
 
 
