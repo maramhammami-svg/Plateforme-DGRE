@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 from .database import SessionLocal
-from .models import User, Station, UniteOrganisationnelle
+from .models import User, Station, UniteOrganisationnelle, Consolidation
 from .security import hash_password
 from . import constants as C
 
@@ -187,6 +187,48 @@ def seed():
                 if st.sensor_status in (None, "unknown") and "sensor_status" in st_data:
                     st.sensor_status = st_data["sensor_status"]
                     st.battery_level = st_data["battery_level"]
+
+        # ── ÉTAPE 5 : Consolidations de demo (nord/centre/sud, 2 annees) ────
+        # Contenu visible des le premier demarrage pour l'onglet Consolidations
+        # (sinon vide tant que yasra.xlsx n'a pas ete importe manuellement).
+        months = ["sept", "octo", "nove", "dece", "janv", "fevr",
+                  "mars", "avri", "mai", "juin", "juil", "aout"]
+        seasons = ["automne", "hiver", "printemps", "ete"]
+        consolidation_data = [
+            {"code": "PLV-001", "annee": 2022,
+             "mois": [38, 55, 62, 70, 58, 45, 32, 28, 18, 8, 3, 2],
+             "saisons": [155, 173, 78, 13], "total": 419, "normale": 450, "pct": 93.1},
+            {"code": "PLV-001", "annee": 2023,
+             "mois": [42, 60, 68, 78, 65, 50, 38, 30, 15, 5, 2, 1],
+             "saisons": [170, 193, 83, 8], "total": 454, "normale": 450, "pct": 100.9},
+            {"code": "PLV-010", "annee": 2022,
+             "mois": [22, 35, 40, 38, 32, 25, 20, 18, 10, 5, 2, 1],
+             "saisons": [97, 95, 48, 8], "total": 248, "normale": 280, "pct": 88.6},
+            {"code": "PLV-010", "annee": 2023,
+             "mois": [28, 42, 48, 45, 38, 30, 25, 22, 12, 4, 1, 0],
+             "saisons": [118, 113, 59, 5], "total": 295, "normale": 280, "pct": 105.4},
+            {"code": "PLV-015", "annee": 2022,
+             "mois": [5, 8, 12, 10, 8, 6, 5, 4, 3, 2, 1, 0],
+             "saisons": [25, 24, 12, 3], "total": 64, "normale": 80, "pct": 80.0},
+            {"code": "PLV-015", "annee": 2023,
+             "mois": [8, 12, 15, 14, 10, 8, 6, 5, 2, 1, 0, 0],
+             "saisons": [35, 32, 13, 1], "total": 81, "normale": 80, "pct": 101.3},
+        ]
+        for d in consolidation_data:
+            st = db.query(Station).filter_by(code=d["code"]).first()
+            if not st:
+                continue
+            existing = db.query(Consolidation).filter_by(
+                station_id=st.id, annee_hydro=d["annee"]
+            ).first()
+            if existing:
+                continue
+            db.add(Consolidation(
+                station_id=st.id, annee_hydro=d["annee"],
+                **dict(zip(months, d["mois"])),
+                **dict(zip(seasons, d["saisons"])),
+                total=d["total"], normale=d["normale"], pourcentage=d["pct"],
+            ))
 
         db.commit()
     finally:
