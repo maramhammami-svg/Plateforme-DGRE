@@ -35,6 +35,33 @@ PROGRESS_EVERY = 500
 
 HEADER_RE = re.compile(r"<STATION>(\d+)</STATION><SENSOR>(\d+)</SENSOR>")
 
+GOVERNORATE_CENTROIDS = {
+    "Tunis": (36.8065, 10.1815),
+    "Ariana": (36.8625, 10.1956),
+    "Ben_Arous": (36.7533, 10.2282),
+    "Manouba": (36.8081, 10.0972),
+    "Nabeul": (36.4561, 10.7376),
+    "Zaghouan": (36.4028, 10.1425),
+    "Bizerte": (37.2744, 9.8739),
+    "Beja": (36.7256, 9.1817),
+    "Jendouba": (36.5011, 8.7803),
+    "Kef": (36.1826, 8.7148),
+    "Siliana": (36.0836, 9.3708),
+    "Kairouan": (35.6781, 10.0963),
+    "Kasserine": (35.1676, 8.8365),
+    "Sidi_Bouzid": (35.0381, 9.4858),
+    "Sousse": (35.8256, 10.6369),
+    "Monastir": (35.7643, 10.8113),
+    "Mahdia": (35.5047, 11.0622),
+    "Sfax": (34.7406, 10.7603),
+    "Gafsa": (34.4250, 8.7842),
+    "Tozeur": (33.9197, 8.1335),
+    "Kebili": (33.7044, 8.9690),
+    "Gabes": (33.8815, 10.0982),
+    "Medenine": (33.3549, 10.5055),
+    "Tataouine": (32.9297, 10.4518),
+}
+
 
 def _parse_value(raw: str):
     """'0.00' -> 0.0 ; vide/non-numerique -> None (is_missing)."""
@@ -84,6 +111,7 @@ def run(zip_path: str):
     stations_created = files_done = readings_count = errors = 0
     station_cache: dict[str, int] = {}
     batch: list[RawReading] = []
+    unknown_governorates: list[str] = []
 
     try:
         with zipfile.ZipFile(zip_path) as zf:
@@ -120,6 +148,9 @@ def run(zip_path: str):
                 for station_code, sensor_code, ts, valeur in _parse_mis_file(fpath):
                     station_id = station_cache.get(station_code)
                     if station_id is None:
+                        lat, lon = GOVERNORATE_CENTROIDS.get(governorate, (0.0, 0.0))
+                        if governorate not in GOVERNORATE_CENTROIDS and governorate not in unknown_governorates:
+                            unknown_governorates.append(governorate)
                         st = Station(
                             code=station_code,
                             name=f"Station {station_code}",
@@ -128,8 +159,8 @@ def run(zip_path: str):
                             unit=C.UNIT_MM,
                             governorate=governorate,
                             sampling_interval_min=5,
-                            latitude=0.0,
-                            longitude=0.0,
+                            latitude=lat,
+                            longitude=lon,
                             unite_id=unite_id,
                         )
                         db.add(st)
@@ -169,6 +200,9 @@ def run(zip_path: str):
         print(f"Import termine : {stations_created} stations creees, "
               f"{files_done} fichiers traites, {readings_count} mesures importees, "
               f"{errors} erreurs ignorees.")
+        if unknown_governorates:
+            print(f"⚠️ Gouvernorats non reconnus, coordonnées (0,0) — "
+                  f"à corriger manuellement : {', '.join(unknown_governorates)}")
     finally:
         db.close()
         shutil.rmtree(tmpdir, ignore_errors=True)
