@@ -21,9 +21,18 @@ _SEVERITY = {C.FLAG_ABERRANT: 3, C.FLAG_SUSPECT: 2, C.FLAG_MANQUANT: 1, C.FLAG_O
 
 
 def _default_annee_hydro(db: Session) -> int:
-    """Annee hydro la plus recente presente en consolidation, sinon 2024."""
+    """Annee hydro la plus recente presente en consolidation, sinon deduite
+    de la date la plus recente presente en Reading, sinon 2024 (base vide)."""
     latest = db.query(func.max(Consolidation.annee_hydro)).scalar()
-    return latest if latest is not None else 2024
+    if latest is not None:
+        return latest
+    latest_reading_date = db.query(func.max(Reading.date)).scalar()
+    if latest_reading_date is not None:
+        # annee hydro = annee de debut (sept->aout) : si la date est
+        # avant septembre, elle appartient a l'annee hydro precedente.
+        return latest_reading_date.year if latest_reading_date.month >= 9 \
+            else latest_reading_date.year - 1
+    return 2024
 
 
 def _hydro_window(annee_hydro: int) -> tuple[str, str]:
