@@ -10,15 +10,26 @@ function partagesLabel(partages) {
   return partages.map(p => esc(p.nom) + (p.type === "unite" ? " (unité)" : "")).join(", ");
 }
 
+function uniteNom(id) {
+  if (id == null) return "";
+  const u = uniteCache.find(u => u.id === id);
+  return u ? u.nom : `#${id}`;
+}
+function userNom(id) {
+  const u = userCache.find(u => u.id === id);
+  return u ? (u.full_name || u.username) : `#${id}`;
+}
+
 export async function loadDocuments() {
   try {
+    if (!uniteCache.length || !userCache.length) await loadDirectories();
     const rows = await api("/documents");
     const tb = $("#docsBody");
     tb.innerHTML = "";
     if (!rows.length) { tb.innerHTML = '<tr><td colspan="8" class="empty">Aucun document.</td></tr>'; return; }
     rows.forEach(d => {
       const tr = el("tr"); const created = d.created_at ? String(d.created_at).slice(0, 10) : "";
-      tr.innerHTML = `<td class="num">${d.id}</td><td>${esc(d.nom)}</td><td class="num">${d.owner_id}</td><td class="num">${d.unite_id ?? ''}</td>
+      tr.innerHTML = `<td class="num">${d.id}</td><td>${esc(d.nom)}</td><td>${esc(userNom(d.owner_id))}</td><td>${esc(uniteNom(d.unite_id))}</td>
         <td class="num">${d.taille_ko}</td><td>${partagesLabel(d.partages)}</td><td class="num">${esc(created)}</td><td class="actions"><button class="btn sm" data-doc="${d.id}">Télécharger</button></td>`;
       tb.appendChild(tr);
     });
