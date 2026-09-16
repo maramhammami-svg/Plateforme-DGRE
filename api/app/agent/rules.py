@@ -4,12 +4,12 @@ Chaque regle interroge la table `events` (le seul contrat d'observabilite lu par
 l'agent, cf. app/events.py) avec des filtres/aggregations SQL — jamais de boucle
 Python sur les lignes brutes. Une regle retourne une liste de dicts consommables
 directement par `Alert(**data)`. Le sujet d'une alerte (pour la deduplication
-"pas de doublon tant qu'une alerte est ouverte") est toujours `actor_username`
+"pas de doublon tant qu'une alerte est active ou recente") est toujours `actor_username`
 et/ou `source_ip`, les deux seuls champs d'identite portes par le modele `Alert`.
 """
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from .. import constants as C
@@ -24,11 +24,25 @@ def _now():
     return datetime.now(timezone.utc)
 
 
-def _has_open_alert(db: Session, rule_name: str, *,
+# Statuts ou l'alerte est encore "en cours de traitement" : tant qu'elle y est,
+# la regle ne la reemet pas, quel que soit son age.
+_ACTIVE_STATUSES = (C.ALERT_OPEN, C.ALERT_ACKNOWLEDGED)
+
+
+def _has_open_alert(db: Session, rule_name: str, *, since: datetime,
                     actor_username: str | None = None,
                     source_ip: str | None = None) -> bool:
-    """Vrai si une alerte non close existe deja pour ce (rule_name, sujet)."""
-    q = db.query(Alert.id).filter(Alert.rule_name == rule_name, Alert.status == C.ALERT_OPEN)
+    """Vrai si ce (rule_name, sujet) est deja couvert :
+    - une alerte encore active (ouverte OU acquittee), quel que soit son age ;
+    - OU une alerte, meme close (resolue / faux positif), creee depuis `since`
+      (debut de la fenetre d'analyse de la regle) : les evenements de la fenetre
+      ont deja ete signales. Sans ce second cas, acquitter/resoudre/marquer faux
+      positif ferait reemettre la meme alerte au scan automatique suivant (60s),
+      tant que les evenements restent dans la fenetre."""
+    q = db.query(Alert.id).filter(
+        Alert.rule_name == rule_name,
+        or_(Alert.status.in_(_ACTIVE_STATUSES), Alert.created_at >= since),
+    )
     if actor_username is not None:
         q = q.filter(Alert.actor_username == actor_username)
     if source_ip is not None:
@@ -63,7 +77,7 @@ class BruteForceRule:
         )
         alerts = []
         for username, cnt, ip, last_ts in rows:
-            if _has_open_alert(db, self.name, actor_username=username):
+            if _has_open_alert(db, self.name, since=since, actor_username=username):
                 continue
             alerts.append({
                 "rule_name": self.name,
@@ -111,7 +125,7 @@ class AccountScanRule:
         )
         alerts = []
         for ip, cnt in rows:
-            if _has_open_alert(db, self.name, source_ip=ip):
+            if _has_open_alert(db, self.name, since=since, source_ip=ip):
                 continue
             alerts.append({
                 "rule_name": self.name,
@@ -159,7 +173,7 @@ class EscalationRule:
         )
         alerts = []
         for username, cnt, ip in rows:
-            if _has_open_alert(db, self.name, actor_username=username):
+            if _has_open_alert(db, self.name, since=since, actor_username=username):
                 continue
             alerts.append({
                 "rule_name": self.name,
@@ -204,7 +218,7 @@ class ConcurrentSessionRule:
         )
         alerts = []
         for username, cnt in rows:
-            if _has_open_alert(db, self.name, actor_username=username):
+            if _has_open_alert(db, self.name, since=since, actor_username=username):
                 continue
             ips = [
                 row[0] for row in db.query(func.distinct(Event.channel_ip)).filter(
@@ -250,7 +264,7 @@ class ExfiltrationRule:
         )
         alerts = []
         for ev in rows:
-            if _has_open_alert(db, self.name, actor_username=ev.actor_username):
+            if _has_open_alert(db, self.name, since=since, actor_username=ev.actor_username):
                 continue
             alerts.append({
                 "rule_name": self.name,
@@ -295,7 +309,7 @@ class FalsificationRule:
         )
         alerts = []
         for username, cnt, ip in rows:
-            if _has_open_alert(db, self.name, actor_username=username):
+            if _has_open_alert(db, self.name, since=since, actor_username=username):
                 continue
             alerts.append({
                 "rule_name": self.name,
@@ -339,7 +353,7 @@ class NightAccessRule:
         )
         alerts = []
         for username, cnt, ip in rows:
-            if _has_open_alert(db, self.name, actor_username=username):
+            if _has_open_alert(db, self.name, since=since, actor_username=username):
                 continue
             alerts.append({
                 "rule_name": self.name,
@@ -397,7 +411,7 @@ class ActivitySpikeRule:
             baseline_avg = baseline_cnt / baseline_windows
             if recent_cnt < baseline_avg * C.ACTIVITY_SPIKE_MULTIPLIER:
                 continue
-            if _has_open_alert(db, self.name, actor_username=username):
+            if _has_open_alert(db, self.name, since=recent_since, actor_username=username):
                 continue
             alerts.append({
                 "rule_name": self.name,
@@ -449,7 +463,7 @@ class QualityAnomalyRule:
         )
         alerts = []
         for username, cnt, ip in rows:
-            if _has_open_alert(db, self.name, actor_username=username):
+            if _has_open_alert(db, self.name, since=since, actor_username=username):
                 continue
             alerts.append({
                 "rule_name": self.name,

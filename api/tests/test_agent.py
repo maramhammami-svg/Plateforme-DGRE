@@ -162,3 +162,72 @@ def test_quality_anomaly_creates_alert(db):
     # un second scan ne doit pas redoubler l'alerte (deja ouverte pour ce sujet)
     scan(db)
     assert db.query(Alert).filter(Alert.rule_name == "quality_anomaly").count() == 1
+
+
+def _add_failed_logins(db, user, n, now):
+    for i in range(n):
+        db.add(Event(
+            timestamp=now - timedelta(seconds=i),
+            actor_id=user.id, actor_username=user.username, role=user.role,
+            action="login", result=C.RESULT_FAILURE,
+            channel_ip="10.0.0.1", detail={"username": user.username},
+        ))
+    db.commit()
+
+
+@pytest.mark.parametrize("closed_status", [
+    C.ALERT_ACKNOWLEDGED, C.ALERT_RESOLVED, C.ALERT_FALSE_POSITIVE,
+])
+def test_handled_alert_not_reemitted_while_events_in_window(db, closed_status):
+    """Acquitter / resoudre / marquer faux positif ne doit pas faire reemettre la
+    meme alerte au scan suivant tant que les evenements sont dans la fenetre
+    (regression : avec le scan automatique, doublon toutes les 60s)."""
+    user = User(username="agent2", hashed_password="x", role=C.ROLE_AGENT)
+    db.add(user)
+    db.commit()
+    _add_failed_logins(db, user, C.BRUTE_FORCE_THRESHOLD, datetime.now(timezone.utc))
+
+    scan(db)
+    alert = db.query(Alert).filter(Alert.rule_name == "brute_force").one()
+    alert.status = closed_status
+    db.commit()
+
+    scan(db)
+    assert db.query(Alert).filter(Alert.rule_name == "brute_force").count() == 1
+
+
+def test_closed_old_alert_does_not_hide_new_attack(db):
+    """Une alerte close ET anterieure a la fenetre ne bloque pas une nouvelle
+    attaque : le sujet est de nouveau signale."""
+    user = User(username="agent3", hashed_password="x", role=C.ROLE_AGENT)
+    db.add(user)
+    db.commit()
+    now = datetime.now(timezone.utc)
+    db.add(Alert(
+        rule_name="brute_force", severity=C.SEVERITY_CRITICAL, status=C.ALERT_RESOLVED,
+        actor_username=user.username, description="ancienne attaque",
+        created_at=now - timedelta(seconds=C.BRUTE_FORCE_WINDOW_SEC * 3),
+    ))
+    db.commit()
+    _add_failed_logins(db, user, C.BRUTE_FORCE_THRESHOLD, now)
+
+    scan(db)
+    assert db.query(Alert).filter(Alert.rule_name == "brute_force").count() == 2
+
+
+def test_acknowledged_old_alert_still_blocks(db):
+    """Une alerte acquittee reste active : pas de nouvelle alerte, meme ancienne."""
+    user = User(username="agent4", hashed_password="x", role=C.ROLE_AGENT)
+    db.add(user)
+    db.commit()
+    now = datetime.now(timezone.utc)
+    db.add(Alert(
+        rule_name="brute_force", severity=C.SEVERITY_CRITICAL, status=C.ALERT_ACKNOWLEDGED,
+        actor_username=user.username, description="en cours de traitement",
+        created_at=now - timedelta(seconds=C.BRUTE_FORCE_WINDOW_SEC * 3),
+    ))
+    db.commit()
+    _add_failed_logins(db, user, C.BRUTE_FORCE_THRESHOLD, now)
+
+    scan(db)
+    assert db.query(Alert).filter(Alert.rule_name == "brute_force").count() == 1

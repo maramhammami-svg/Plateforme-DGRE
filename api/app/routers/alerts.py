@@ -107,7 +107,8 @@ def false_positive_alert(alert_id: int, request: Request, db: Session = Depends(
                              *_ALERT_ROLES, action="mark_false_positive_alert",
                              resource_type="alert"))):
     return _set_status(alert_id, C.ALERT_FALSE_POSITIVE, "mark_false_positive_alert",
-                       request, db, user)
+                       request, db, user,
+                       extra={"resolved_at": datetime.now(timezone.utc), "resolved_by": user.id})
 
 
 @agent_router.post("/scan")

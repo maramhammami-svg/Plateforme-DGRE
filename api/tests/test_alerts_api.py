@@ -73,3 +73,26 @@ def test_list_alerts_forbidden_for_observateur(client):
     headers = _auth_headers(_login(client, "obs_jendouba", "obs_jendouba123"))
     resp = client.get("/alerts", headers=headers)
     assert resp.status_code == 403
+
+
+def test_false_positive_records_who_and_when(client):
+    """Un faux positif est une cloture : on trace qui et quand (comme resolve)."""
+    from app.models import Alert, User
+    db = database.SessionLocal()
+    try:
+        alert = Alert(rule_name="night_access", severity="medium", status="open",
+                      actor_username="aymen", description="test")
+        db.add(alert)
+        db.commit()
+        alert_id = alert.id
+        admin_id = db.query(User).filter(User.username == "admin").one().id
+    finally:
+        db.close()
+
+    headers = _auth_headers(_login(client, "admin", "admin123"))
+    resp = client.patch(f"/alerts/{alert_id}/false-positive", headers=headers)
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["status"] == "false_positive"
+    assert body["resolved_by"] == admin_id
+    assert body["resolved_at"] is not None
