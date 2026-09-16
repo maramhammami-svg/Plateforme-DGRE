@@ -27,7 +27,7 @@ a{color:var(--accent)}
 .fs b{color:#fff; font-weight:700; font-size:17px}
 .fs .d{width:26px; height:26px; border-radius:50%; display:grid; place-items:center;
   color:#fff; font-size:13px; font-weight:700; box-shadow:0 0 0 4px rgba(255,255,255,.15)}
-.d-ok{background:var(--ok)} .d-bad{background:var(--bad)} .d-warn{background:var(--warn)}
+.d-ok{background:var(--ok)} .d-bad{background:var(--bad)} .d-warn{background:var(--warn)} .d-grey{background:var(--grey)}
 .fs .d-ok{box-shadow:0 0 14px color-mix(in srgb, var(--ok) 75%, transparent), 0 0 0 4px rgba(255,255,255,.15)}
 .fs .d-ok::after{content:"✓"}
 .fs .d-bad{box-shadow:0 0 14px color-mix(in srgb, var(--bad) 75%, transparent), 0 0 0 4px rgba(255,255,255,.15)}
@@ -237,3 +237,8 @@ td.num{font-family:var(--mono)}
 .modal .btn{margin-top:14px}
 .keybox{font-family:var(--mono); background:var(--info-bg); border:1px solid var(--line-2); color:var(--info);
   padding:10px 12px; border-radius:9px; word-break:break-all; margin:8px 0}
+
+/* Bandeau "agent vivant" (onglet Alertes) */
+.agent-status{display:flex; align-items:center; gap:10px; padding:10px 16px; border-top:1px solid var(--line);
+  font-size:13px; color:var(--muted); font-family:var(--mono)}
+.agent-status .as-dot{width:9px; height:9px; border-radius:50%; flex:none}

@@ -214,9 +214,13 @@
             <option value="false_positive">faux positif</option>
           </select></label>
           <button class="btn sm" id="alRefresh">Rafraîchir</button>
+          <label class="field" style="flex-direction:row; align-items:center; gap:8px; color:var(--ink)">
+            <input type="checkbox" id="alAuto" checked style="min-width:auto"> direct (5 s)
+          </label>
           <button class="btn sm" id="alScan" data-need="admin">Lancer un scan</button>
         </div>
       </header>
+      <div class="agent-status" id="agentStatus"><span class="as-dot d-grey"></span><span class="as-text">Statut de l'agent…</span></div>
     </div>
 
     <div class="kpis">

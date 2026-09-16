@@ -8,5 +8,6 @@ export const state = {
   governorateCache: null,
   autoTimer: null,
   fluxTimer: null,
+  alertsTimer: null,
   lastTopEventId: 0,
 };

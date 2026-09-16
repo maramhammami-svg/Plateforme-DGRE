@@ -29,6 +29,7 @@ export function doLogout() {
   state.token = null; state.me = null; localStorage.removeItem(TOKEN_KEY);
   if (state.autoTimer) { clearInterval(state.autoTimer); state.autoTimer = null; }
   if (state.fluxTimer) { clearInterval(state.fluxTimer); state.fluxTimer = null; }
+  if (state.alertsTimer) { clearInterval(state.alertsTimer); state.alertsTimer = null; }
   $("#appView").classList.add("hidden"); $("#whoBox").classList.add("hidden"); $("#fluxStrip").classList.add("hidden");
   $("#liUser").value = ""; $("#liPass").value = "";
   $("#loginView").classList.remove("hidden");
