@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from .config import settings
 from .database import Base, engine
 from .seed import seed
+from .agent import scheduler as agent_scheduler
 from .routers import (auth, stations, raw_readings, readings, events, admin,
                       consolidations, documents, dashboard, unites, alerts)
 
@@ -62,6 +63,13 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 def on_startup():
     Base.metadata.create_all(bind=engine)
     seed()
+    if settings.agent_scheduler_enabled:
+        agent_scheduler.start()
+
+
+@app.on_event("shutdown")
+def on_shutdown():
+    agent_scheduler.stop()
 
 
 @app.get("/health", tags=["meta"])

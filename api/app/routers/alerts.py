@@ -10,6 +10,7 @@ from ..models import Alert, User
 from ..deps import require_role
 from ..events import log_event
 from ..agent.engine import scan
+from ..agent import scheduler as agent_scheduler
 from .. import constants as C
 from ..schemas import AlertOut, AlertStats
 
@@ -117,3 +118,15 @@ def trigger_scan(request: Request, db: Session = Depends(get_db),
     log_event(db, request=request, user=user, action="trigger_scan",
               resource_type="alert", detail={"new_alerts": len(created)})
     return {"new_alerts": len(created)}
+
+
+@agent_router.get("/status")
+def agent_status(db: Session = Depends(get_db),
+                 user: User = Depends(require_role(
+                     *_ALERT_ROLES, action="agent_status", resource_type="alert"))):
+    """Etat du scan automatique, visible des responsables (pas admin-only) :
+    ils doivent pouvoir constater que l'agent tourne."""
+    state = agent_scheduler.get_state()
+    state["open_alerts"] = (db.query(func.count(Alert.id))
+                            .filter(Alert.status == C.ALERT_OPEN).scalar())
+    return state

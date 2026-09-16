@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int = 120
     enable_docs: bool = False
     documents_dir: str = "/data/documents"
+    agent_scheduler_enabled: bool = True
 
     class Config:
         env_file = ".env"

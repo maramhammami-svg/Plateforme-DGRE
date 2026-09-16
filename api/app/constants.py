@@ -101,6 +101,9 @@ AUTO_ACTION_LOCK = "lock_account"
 AUTO_ACTION_BLOCK_EXPORT = "block_export"
 AUTO_ACTION_FORCE_RELOGIN = "force_relogin"
 
+# Agent de surveillance : cadence du scan automatique (< plus petite fenetre, 120s)
+AGENT_SCAN_INTERVAL_SEC = 60
+
 # Agent de surveillance : seuils des regles
 BRUTE_FORCE_THRESHOLD = 5          # echecs de connexion sur le meme compte
 BRUTE_FORCE_WINDOW_SEC = 120
